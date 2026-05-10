@@ -1,30 +1,96 @@
-# React + TypeScript + Vite
+# 🎮 STLinuxTools
+### O Gerenciador Definitivo de Jogos Non-Steam para Linux
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Banner](assets/banner.png)
 
-Currently, two official plugins are available:
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![Electron](https://img.shields.io/badge/Electron-47848F?style=flat-square&logo=electron&logoColor=white)](https://www.electronjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+**STLinuxTools** é uma ferramenta poderosa e elegante projetada para gamers no Linux que desejam integrar perfeitamente seus jogos de fora da Steam (Epic Games, GOG, Emuladores, etc.) à biblioteca oficial da Steam, com automação completa de arte e configurações.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## ✨ Funcionalidades Principais
 
-- Configure the top-level `parserOptions` property like this:
+*   **🚀 Injeção Automatizada**: Adicione jogos Non-Steam à sua biblioteca sem precisar editar arquivos VDF manualmente.
+*   **🎨 Arte Automática (SteamGridDB)**: Busca automática de capas (grids), heróis, logos e ícones diretamente da API do SteamGridDB.
+*   **🛠️ Wizard de Configuração**: Configure opções de inicialização e camadas de compatibilidade (Proton) através de uma interface intuitiva.
+*   **🐧 Otimizado para Linux**: Desenvolvido pensando no ecossistema Linux, com suporte a Flatpak e caminhos de biblioteca padrão.
+*   **💅 Interface Adwaita Modern**: UI limpa, responsiva e seguindo os padrões visuais mais modernos do GNOME.
+*   **🔄 Reinicialização Inteligente**: Aplique as mudanças e reinicie a Steam com um único clique para ver seus novos jogos instantaneamente.
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
+---
+
+## 🛠️ Como Funciona?
+
+O STLinuxTools interage diretamente com o arquivo `shortcuts.vdf` da sua conta Steam. Ele automatiza o processo de:
+1. Localizar sua instalação da Steam e o perfil de usuário.
+2. Gerar as entradas necessárias no banco de dados da Steam.
+3. Baixar e organizar os arquivos de arte nas pastas corretas (`userdata/<ID>/config/grid`).
+4. Definir as variáveis de ambiente e versões do Proton necessárias para cada jogo.
+
+---
+
+## 🚀 Instalação e Desenvolvimento
+
+### Pré-requisitos
+- **Node.js** (v18 ou superior)
+- **npm** ou **yarn**
+- **Steam** instalada e configurada no seu sistema Linux.
+
+### Rodando Localmente
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/markuusbrdev/STLinuxTools.git
+   cd STLinuxTools
+   ```
+2. Instale as dependências:
+   ```bash
+   npm install
+   ```
+3. Inicie o ambiente de desenvolvimento:
+   ```bash
+   npm run dev
+   ```
+
+### Build (Gerar Executável)
+Para gerar o instalador para Linux:
+```bash
+npm run build
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+---
+
+## 🏗️ Stack Tecnológica
+
+- **Frontend**: React + TypeScript + Vite
+- **Desktop**: Electron
+- **Estilização**: Tailwind CSS (GNOME Adwaita Style)
+- **Integração**: SteamGridDB API & VDF Parser
+
+---
+
+## 🤝 Contribuições
+
+Contribuições são sempre bem-vindas! Sinta-se à vontade para abrir uma **Issue** ou enviar um **Pull Request**.
+
+1. Faça um Fork do projeto
+2. Crie uma Branch para sua feature (`git checkout -b feature/NovaFeature`)
+3. Commit suas mudanças (`git commit -m 'Add: Nova Feature'`)
+4. Push para a Branch (`git push origin feature/NovaFeature`)
+5. Abra um Pull Request
+
+---
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+---
+
+<p align="center">
+  Desenvolvido com ❤️ por <a href="https://github.com/markuusbrdev">Marcus (markuusbrdev)</a>
+</p>
