@@ -14392,8 +14392,17 @@ var ref = ReferenceError;
 /** @type {import('./syntax')} */
 var syntax = SyntaxError;
 
-/** @type {import('./type')} */
-var type = TypeError;
+var type;
+var hasRequiredType;
+
+function requireType () {
+	if (hasRequiredType) return type;
+	hasRequiredType = 1;
+
+	/** @type {import('./type')} */
+	type = TypeError;
+	return type;
+}
 
 /** @type {import('./uri')} */
 var uri = URIError;
@@ -14711,7 +14720,7 @@ function requireCallBindApplyHelpers () {
 	hasRequiredCallBindApplyHelpers = 1;
 
 	var bind = functionBind;
-	var $TypeError = type;
+	var $TypeError = requireType();
 
 	var $call = requireFunctionCall();
 	var $actualApply = requireActualApply();
@@ -14815,7 +14824,7 @@ var $EvalError = _eval;
 var $RangeError = range;
 var $ReferenceError = ref;
 var $SyntaxError = syntax;
-var $TypeError$1 = type;
+var $TypeError$1 = requireType();
 var $URIError = uri;
 
 var abs = abs$1;
@@ -15205,7 +15214,7 @@ var $defineProperty = GetIntrinsic('%Object.defineProperty%', true);
 
 var hasToStringTag = requireShams()();
 var hasOwn$1 = hasown;
-var $TypeError = type;
+var $TypeError = requireType();
 
 var toStringTag = hasToStringTag ? Symbol.toStringTag : null;
 
