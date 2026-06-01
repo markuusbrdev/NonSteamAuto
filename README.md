@@ -97,5 +97,5 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 ---
 
 <p align="center">
-  Desenvolvido com ❤️ por <a href="https://github.com/markuusbrdev">Marcus (markuusbrdev)</a>
+  Desenvolvido com ❤️ por <a href="https://github.com/markuusbrdev">markuusbrdev</a>
 </p>
