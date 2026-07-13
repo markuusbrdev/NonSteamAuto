@@ -3,7 +3,13 @@ import { ipcRenderer, contextBridge } from 'electron'
 contextBridge.exposeInMainWorld('api', {
   selectExe: () => ipcRenderer.invoke('select-exe'),
   getApiKey: () => ipcRenderer.invoke('get-api-key'),
+  saveApiKey: (apiKey: string) => ipcRenderer.invoke('save-api-key', apiKey),
   getProtons: () => ipcRenderer.invoke('get-protons'),
+  
+  // Controles de Janela
+  minimize: () => ipcRenderer.send('window-minimize'),
+  maximize: () => ipcRenderer.send('window-maximize'),
+  close: () => ipcRenderer.send('window-close'),
   
   // Novos para o Wizard
   searchArts: (gameName: string, apiKey: string) => 

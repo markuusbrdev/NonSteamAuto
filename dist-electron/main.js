@@ -15274,9 +15274,9 @@ var populate = populate$1;
  * @constructor
  * @param {object} options - Properties to be added/overriden for FormData and CombinedStream
  */
-function FormData$1(options) {
-  if (!(this instanceof FormData$1)) {
-    return new FormData$1(options);
+function FormData$2(options) {
+  if (!(this instanceof FormData$2)) {
+    return new FormData$2(options);
   }
 
   this._overheadLength = 0;
@@ -15292,12 +15292,12 @@ function FormData$1(options) {
 }
 
 // make it a Stream
-util.inherits(FormData$1, CombinedStream);
+util.inherits(FormData$2, CombinedStream);
 
-FormData$1.LINE_BREAK = '\r\n';
-FormData$1.DEFAULT_CONTENT_TYPE = 'application/octet-stream';
+FormData$2.LINE_BREAK = '\r\n';
+FormData$2.DEFAULT_CONTENT_TYPE = 'application/octet-stream';
 
-FormData$1.prototype.append = function (field, value, options) {
+FormData$2.prototype.append = function (field, value, options) {
   options = options || {}; // eslint-disable-line no-param-reassign
 
   // allow filename as single option
@@ -15333,7 +15333,7 @@ FormData$1.prototype.append = function (field, value, options) {
   this._trackLength(header, value, options);
 };
 
-FormData$1.prototype._trackLength = function (header, value, options) {
+FormData$2.prototype._trackLength = function (header, value, options) {
   var valueLength = 0;
 
   /*
@@ -15353,7 +15353,7 @@ FormData$1.prototype._trackLength = function (header, value, options) {
   this._valueLength += valueLength;
 
   // @check why add CRLF? does this account for custom/multiple CRLFs?
-  this._overheadLength += Buffer.byteLength(header) + FormData$1.LINE_BREAK.length;
+  this._overheadLength += Buffer.byteLength(header) + FormData$2.LINE_BREAK.length;
 
   // empty or either doesn't have path or not an http response or not a stream
   if (!value || (!value.path && !(value.readable && hasOwn(value, 'httpVersion')) && !(value instanceof Stream))) {
@@ -15366,7 +15366,7 @@ FormData$1.prototype._trackLength = function (header, value, options) {
   }
 };
 
-FormData$1.prototype._lengthRetriever = function (value, callback) {
+FormData$2.prototype._lengthRetriever = function (value, callback) {
   if (hasOwn(value, 'fd')) {
     // take read range into a account
     // `end` = Infinity –> read file till the end
@@ -15415,7 +15415,7 @@ FormData$1.prototype._lengthRetriever = function (value, callback) {
   }
 };
 
-FormData$1.prototype._multiPartHeader = function (field, value, options) {
+FormData$2.prototype._multiPartHeader = function (field, value, options) {
   /*
    * custom header specified (as string)?
    * it becomes responsible for boundary
@@ -15458,15 +15458,15 @@ FormData$1.prototype._multiPartHeader = function (field, value, options) {
 
       // add non-empty headers.
       if (header.length) {
-        contents += prop + ': ' + header.join('; ') + FormData$1.LINE_BREAK;
+        contents += prop + ': ' + header.join('; ') + FormData$2.LINE_BREAK;
       }
     }
   }
 
-  return '--' + this.getBoundary() + FormData$1.LINE_BREAK + contents + FormData$1.LINE_BREAK;
+  return '--' + this.getBoundary() + FormData$2.LINE_BREAK + contents + FormData$2.LINE_BREAK;
 };
 
-FormData$1.prototype._getContentDisposition = function (value, options) { // eslint-disable-line consistent-return
+FormData$2.prototype._getContentDisposition = function (value, options) { // eslint-disable-line consistent-return
   var filename;
 
   if (typeof options.filepath === 'string') {
@@ -15489,7 +15489,7 @@ FormData$1.prototype._getContentDisposition = function (value, options) { // esl
   }
 };
 
-FormData$1.prototype._getContentType = function (value, options) {
+FormData$2.prototype._getContentType = function (value, options) {
   // use custom content-type above all
   var contentType = options.contentType;
 
@@ -15515,15 +15515,15 @@ FormData$1.prototype._getContentType = function (value, options) {
 
   // fallback to the default content type if `value` is not simple value
   if (!contentType && value && typeof value === 'object') {
-    contentType = FormData$1.DEFAULT_CONTENT_TYPE;
+    contentType = FormData$2.DEFAULT_CONTENT_TYPE;
   }
 
   return contentType;
 };
 
-FormData$1.prototype._multiPartFooter = function () {
+FormData$2.prototype._multiPartFooter = function () {
   return function (next) {
-    var footer = FormData$1.LINE_BREAK;
+    var footer = FormData$2.LINE_BREAK;
 
     var lastPart = this._streams.length === 0;
     if (lastPart) {
@@ -15534,11 +15534,11 @@ FormData$1.prototype._multiPartFooter = function () {
   }.bind(this);
 };
 
-FormData$1.prototype._lastBoundary = function () {
-  return '--' + this.getBoundary() + '--' + FormData$1.LINE_BREAK;
+FormData$2.prototype._lastBoundary = function () {
+  return '--' + this.getBoundary() + '--' + FormData$2.LINE_BREAK;
 };
 
-FormData$1.prototype.getHeaders = function (userHeaders) {
+FormData$2.prototype.getHeaders = function (userHeaders) {
   var header;
   var formHeaders = {
     'content-type': 'multipart/form-data; boundary=' + this.getBoundary()
@@ -15553,14 +15553,14 @@ FormData$1.prototype.getHeaders = function (userHeaders) {
   return formHeaders;
 };
 
-FormData$1.prototype.setBoundary = function (boundary) {
+FormData$2.prototype.setBoundary = function (boundary) {
   if (typeof boundary !== 'string') {
     throw new TypeError('FormData boundary must be a string');
   }
   this._boundary = boundary;
 };
 
-FormData$1.prototype.getBoundary = function () {
+FormData$2.prototype.getBoundary = function () {
   if (!this._boundary) {
     this._generateBoundary();
   }
@@ -15568,7 +15568,7 @@ FormData$1.prototype.getBoundary = function () {
   return this._boundary;
 };
 
-FormData$1.prototype.getBuffer = function () {
+FormData$2.prototype.getBuffer = function () {
   var dataBuffer = new Buffer.alloc(0); // eslint-disable-line new-cap
   var boundary = this.getBoundary();
 
@@ -15584,7 +15584,7 @@ FormData$1.prototype.getBuffer = function () {
 
       // Add break after content.
       if (typeof this._streams[i] !== 'string' || this._streams[i].substring(2, boundary.length + 2) !== boundary) {
-        dataBuffer = Buffer.concat([dataBuffer, Buffer.from(FormData$1.LINE_BREAK)]);
+        dataBuffer = Buffer.concat([dataBuffer, Buffer.from(FormData$2.LINE_BREAK)]);
       }
     }
   }
@@ -15593,7 +15593,7 @@ FormData$1.prototype.getBuffer = function () {
   return Buffer.concat([dataBuffer, Buffer.from(this._lastBoundary())]);
 };
 
-FormData$1.prototype._generateBoundary = function () {
+FormData$2.prototype._generateBoundary = function () {
   // This generates a 50 character boundary similar to those used by Firefox.
 
   // They are optimized for boyer-moore parsing.
@@ -15602,7 +15602,7 @@ FormData$1.prototype._generateBoundary = function () {
 
 // Note: getLengthSync DOESN'T calculate streams length
 // As workaround one can calculate file size manually and add it as knownLength option
-FormData$1.prototype.getLengthSync = function () {
+FormData$2.prototype.getLengthSync = function () {
   var knownLength = this._overheadLength + this._valueLength;
 
   // Don't get confused, there are 3 "internal" streams for each keyval pair so it basically checks if there is any value added to the form
@@ -15626,7 +15626,7 @@ FormData$1.prototype.getLengthSync = function () {
 // Public API to check if length of added values is known
 // https://github.com/form-data/form-data/issues/196
 // https://github.com/form-data/form-data/issues/262
-FormData$1.prototype.hasKnownLength = function () {
+FormData$2.prototype.hasKnownLength = function () {
   var hasKnownLength = true;
 
   if (this._valuesToMeasure.length) {
@@ -15636,7 +15636,7 @@ FormData$1.prototype.hasKnownLength = function () {
   return hasKnownLength;
 };
 
-FormData$1.prototype.getLength = function (cb) {
+FormData$2.prototype.getLength = function (cb) {
   var knownLength = this._overheadLength + this._valueLength;
 
   if (this._streams.length) {
@@ -15662,7 +15662,7 @@ FormData$1.prototype.getLength = function (cb) {
   });
 };
 
-FormData$1.prototype.submit = function (params, cb) {
+FormData$2.prototype.submit = function (params, cb) {
   var request;
   var options;
   var defaults = { method: 'post' };
@@ -15728,7 +15728,7 @@ FormData$1.prototype.submit = function (params, cb) {
   return request;
 };
 
-FormData$1.prototype._error = function (err) {
+FormData$2.prototype._error = function (err) {
   if (!this.error) {
     this.error = err;
     this.pause();
@@ -15736,15 +15736,15 @@ FormData$1.prototype._error = function (err) {
   }
 };
 
-FormData$1.prototype.toString = function () {
+FormData$2.prototype.toString = function () {
   return '[object FormData]';
 };
-setToStringTag(FormData$1.prototype, 'FormData');
+setToStringTag(FormData$2.prototype, 'FormData');
 
 // Public API
-var form_data = FormData$1;
+var form_data = FormData$2;
 
-const FormData$2 = /*@__PURE__*/getDefaultExportFromCjs(form_data);
+const FormData$1 = /*@__PURE__*/getDefaultExportFromCjs(form_data);
 
 /**
  * Determines if the given thing is a array or js object.
@@ -15833,7 +15833,7 @@ function toFormData$1(obj, formData, options) {
   }
 
   // eslint-disable-next-line no-param-reassign
-  formData = formData || new (FormData$2 || FormData)();
+  formData = formData || new (FormData$1 || FormData)();
 
   // eslint-disable-next-line no-param-reassign
   options = utils$1.toFlatObject(
@@ -16207,7 +16207,7 @@ const platform$1 = {
   isNode: true,
   classes: {
     URLSearchParams,
-    FormData: FormData$2,
+    FormData: FormData$1,
     Blob: (typeof Blob !== 'undefined' && Blob) || null,
   },
   ALPHABET,
@@ -22696,6 +22696,7 @@ function createWindow() {
     width: 1100,
     height: 750,
     icon: path$2.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
+    frame: false,
     webPreferences: {
       preload: path$2.join(__dirname$1, "preload.cjs"),
       nodeIntegration: false,
@@ -22705,6 +22706,15 @@ function createWindow() {
     title: "Non-Steam Automation",
     backgroundColor: "#1b2838"
   });
+  ipcMain.on("window-minimize", () => win?.minimize());
+  ipcMain.on("window-maximize", () => {
+    if (win?.isMaximized()) {
+      win?.unmaximize();
+    } else {
+      win?.maximize();
+    }
+  });
+  ipcMain.on("window-close", () => win?.close());
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
@@ -22717,6 +22727,7 @@ app.whenReady().then(() => {
     return net.fetch("file://" + filePath);
   });
   ipcMain.handle("get-api-key", () => getSavedApiKey());
+  ipcMain.handle("save-api-key", async (_event, apiKey) => await saveApiKey(apiKey));
   ipcMain.handle("get-protons", () => getInstalledProtons());
   ipcMain.handle("select-exe", async () => {
     const result = await dialog.showOpenDialog({

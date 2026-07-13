@@ -3,6 +3,7 @@ const electron = require("electron");
 electron.contextBridge.exposeInMainWorld("api", {
   selectExe: () => electron.ipcRenderer.invoke("select-exe"),
   getApiKey: () => electron.ipcRenderer.invoke("get-api-key"),
+  saveApiKey: (apiKey) => electron.ipcRenderer.invoke("save-api-key", apiKey),
   getProtons: () => electron.ipcRenderer.invoke("get-protons"),
   // Novos para o Wizard
   searchArts: (gameName, apiKey) => electron.ipcRenderer.invoke("search-sgdb-arts", { gameName, apiKey }),

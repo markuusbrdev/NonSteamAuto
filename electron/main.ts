@@ -27,6 +27,7 @@ function createWindow() {
     width: 1100,
     height: 750,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
@@ -36,6 +37,17 @@ function createWindow() {
     title: 'Non-Steam Automation',
     backgroundColor: '#1b2838'
   })
+
+  // Window control handlers for custom titlebar
+  ipcMain.on('window-minimize', () => win?.minimize())
+  ipcMain.on('window-maximize', () => {
+    if (win?.isMaximized()) {
+      win?.unmaximize()
+    } else {
+      win?.maximize()
+    }
+  })
+  ipcMain.on('window-close', () => win?.close())
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
@@ -53,6 +65,7 @@ app.whenReady().then(() => {
   // --- IPC HANDLERS ---
   
   ipcMain.handle('get-api-key', () => getSavedApiKey())
+  ipcMain.handle('save-api-key', async (_event, apiKey) => await saveApiKey(apiKey))
 
   ipcMain.handle('get-protons', () => getInstalledProtons())
 
