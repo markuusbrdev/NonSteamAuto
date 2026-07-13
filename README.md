@@ -1,9 +1,5 @@
 # 🎮 Non-Steam Automation
 
-## ❌ ESSE PROJETO NÃO RECEBERÁ NOVOS UPDATES ❌
-
-
-
 ### O Gerenciador Definitivo de Jogos Non-Steam para Linux
 
 ![Banner](assets/banner.png)
