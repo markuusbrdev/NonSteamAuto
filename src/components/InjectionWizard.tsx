@@ -22,8 +22,8 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel 
   const [useMangoHud, setUseMangoHud] = useState(false)
   const [useGameMode, setUseGameMode] = useState(false)
   
-  const [arts, setArts] = useState<{ grid: string | null, hero: string | null, logo: string | null, icon: string | null }>({
-    grid: null, hero: null, logo: null, icon: null
+  const [arts, setArts] = useState<{ grid: string | null, gridHorizontal: string | null, hero: string | null, logo: string | null, icon: string | null }>({
+    grid: null, gridHorizontal: null, hero: null, logo: null, icon: null
   })
 
   useEffect(() => {
@@ -52,6 +52,7 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel 
       if (results) {
         setArts({
           grid: results.grid || null,
+          gridHorizontal: results.gridHorizontal || null,
           hero: results.hero || null,
           logo: results.logo || null,
           icon: results.icon || null
@@ -66,7 +67,7 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel 
     }
   }
 
-  const handleSelectLocalArt = async (type: 'grid' | 'hero' | 'logo' | 'icon') => {
+  const handleSelectLocalArt = async (type: 'grid' | 'gridHorizontal' | 'hero' | 'logo' | 'icon') => {
     const path = await (window as any).api.selectArtFile()
     if (path) {
       setArts({ ...arts, [type]: `steam-asset://${path}` })
@@ -122,6 +123,17 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel 
 
       {step === 1 ? (
         <div className="space-y-6">
+          {!apiKey && (
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-3 animate-fade-in">
+              <div className="p-2 bg-red-500/20 rounded-full text-red-500 flex-shrink-0">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <p className="text-xs text-red-400 font-medium">Aviso: Nenhuma chave da SteamGridDB configurada. O injetor não poderá buscar capas automaticamente.</p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1">Executável</label>
             <div className="flex gap-2">
@@ -180,7 +192,7 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel 
                 onChange={(e) => setFormData({ ...formData, proton: e.target.value })}
                 className="adwaita-input w-full text-sm appearance-none cursor-pointer"
               >
-                {protonVersions.map(v => <option key={v} value={v}>{v}</option>)}
+                {protonVersions.map(v => <option key={v} value={v} className="bg-[#2b2b2b] text-white">{v}</option>)}
               </select>
             </div>
           </div>
@@ -233,6 +245,18 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel 
                   {arts.hero ? <img src={arts.hero} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-adwaita-text-secondary text-[10px]">Sem Arte</div>}
                   <button 
                     onClick={() => handleSelectLocalArt('hero')}
+                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold transition-all"
+                  >
+                    Trocar
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1">Capa Horizontal (Big Picture)</p>
+                <div className="aspect-[21/9] bg-black/40 rounded-xl overflow-hidden border border-white/5 relative group shadow-inner">
+                  {arts.gridHorizontal ? <img src={arts.gridHorizontal} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-adwaita-text-secondary text-[10px]">Sem Arte</div>}
+                  <button 
+                    onClick={() => handleSelectLocalArt('gridHorizontal')}
                     className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold transition-all"
                   >
                     Trocar

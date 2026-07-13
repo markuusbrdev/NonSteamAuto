@@ -20,15 +20,17 @@ export class SGDBService {
   }
 
   async getAssets(gameId: number) {
-    const [grids, heroes, logos, icons] = await Promise.all([
-      axios.get(`${this.baseUrl}/grids/game/${gameId}`, { headers: this.headers }),
+    const [verticalGrids, horizontalGrids, heroes, logos, icons] = await Promise.all([
+      axios.get(`${this.baseUrl}/grids/game/${gameId}?dimensions=600x900,342x482`, { headers: this.headers }),
+      axios.get(`${this.baseUrl}/grids/game/${gameId}?dimensions=920x430,460x215`, { headers: this.headers }),
       axios.get(`${this.baseUrl}/heroes/game/${gameId}`, { headers: this.headers }),
       axios.get(`${this.baseUrl}/logos/game/${gameId}`, { headers: this.headers }),
       axios.get(`${this.baseUrl}/icons/game/${gameId}`, { headers: this.headers })
     ])
 
     return {
-      grid: grids.data.data[0]?.url,
+      grid: verticalGrids.data.data[0]?.url,
+      gridHorizontal: horizontalGrids.data.data[0]?.url,
       hero: heroes.data.data[0]?.url,
       logo: logos.data.data[0]?.url,
       icon: icons.data.data[0]?.url

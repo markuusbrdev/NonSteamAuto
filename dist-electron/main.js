@@ -905,6 +905,8 @@ function getShortcutUrl(appName, exe) {
 }
 BinaryVdf.getShortcutUrl = getShortcutUrl;
 
+var main = {};
+
 // a simple parser for Valve's KeyValue format
 // https://developer.valvesoftware.com/wiki/KeyValues
 //
@@ -1210,8 +1212,8 @@ function _dump(obj, options, level) {
     return buf;
 }
 
-var parse_1 = parse;
-var stringify_1 = stringify;
+var parse_1 = main.parse = parse;
+var stringify_1 = main.stringify = stringify;
 
 /**
  * Create a bound version of a function with a specified `this` context
@@ -14392,17 +14394,8 @@ var ref = ReferenceError;
 /** @type {import('./syntax')} */
 var syntax = SyntaxError;
 
-var type;
-var hasRequiredType;
-
-function requireType () {
-	if (hasRequiredType) return type;
-	hasRequiredType = 1;
-
-	/** @type {import('./type')} */
-	type = TypeError;
-	return type;
-}
+/** @type {import('./type')} */
+var type = TypeError;
 
 /** @type {import('./uri')} */
 var uri = URIError;
@@ -14720,7 +14713,7 @@ function requireCallBindApplyHelpers () {
 	hasRequiredCallBindApplyHelpers = 1;
 
 	var bind = functionBind;
-	var $TypeError = requireType();
+	var $TypeError = type;
 
 	var $call = requireFunctionCall();
 	var $actualApply = requireActualApply();
@@ -14824,7 +14817,7 @@ var $EvalError = _eval;
 var $RangeError = range;
 var $ReferenceError = ref;
 var $SyntaxError = syntax;
-var $TypeError$1 = requireType();
+var $TypeError$1 = type;
 var $URIError = uri;
 
 var abs = abs$1;
@@ -15214,7 +15207,7 @@ var $defineProperty = GetIntrinsic('%Object.defineProperty%', true);
 
 var hasToStringTag = requireShams()();
 var hasOwn$1 = hasown;
-var $TypeError = requireType();
+var $TypeError = type;
 
 var toStringTag = hasToStringTag ? Symbol.toStringTag : null;
 
@@ -15274,9 +15267,9 @@ var populate = populate$1;
  * @constructor
  * @param {object} options - Properties to be added/overriden for FormData and CombinedStream
  */
-function FormData$2(options) {
-  if (!(this instanceof FormData$2)) {
-    return new FormData$2(options);
+function FormData$1(options) {
+  if (!(this instanceof FormData$1)) {
+    return new FormData$1(options);
   }
 
   this._overheadLength = 0;
@@ -15292,12 +15285,12 @@ function FormData$2(options) {
 }
 
 // make it a Stream
-util.inherits(FormData$2, CombinedStream);
+util.inherits(FormData$1, CombinedStream);
 
-FormData$2.LINE_BREAK = '\r\n';
-FormData$2.DEFAULT_CONTENT_TYPE = 'application/octet-stream';
+FormData$1.LINE_BREAK = '\r\n';
+FormData$1.DEFAULT_CONTENT_TYPE = 'application/octet-stream';
 
-FormData$2.prototype.append = function (field, value, options) {
+FormData$1.prototype.append = function (field, value, options) {
   options = options || {}; // eslint-disable-line no-param-reassign
 
   // allow filename as single option
@@ -15333,7 +15326,7 @@ FormData$2.prototype.append = function (field, value, options) {
   this._trackLength(header, value, options);
 };
 
-FormData$2.prototype._trackLength = function (header, value, options) {
+FormData$1.prototype._trackLength = function (header, value, options) {
   var valueLength = 0;
 
   /*
@@ -15353,7 +15346,7 @@ FormData$2.prototype._trackLength = function (header, value, options) {
   this._valueLength += valueLength;
 
   // @check why add CRLF? does this account for custom/multiple CRLFs?
-  this._overheadLength += Buffer.byteLength(header) + FormData$2.LINE_BREAK.length;
+  this._overheadLength += Buffer.byteLength(header) + FormData$1.LINE_BREAK.length;
 
   // empty or either doesn't have path or not an http response or not a stream
   if (!value || (!value.path && !(value.readable && hasOwn(value, 'httpVersion')) && !(value instanceof Stream))) {
@@ -15366,7 +15359,7 @@ FormData$2.prototype._trackLength = function (header, value, options) {
   }
 };
 
-FormData$2.prototype._lengthRetriever = function (value, callback) {
+FormData$1.prototype._lengthRetriever = function (value, callback) {
   if (hasOwn(value, 'fd')) {
     // take read range into a account
     // `end` = Infinity –> read file till the end
@@ -15415,7 +15408,7 @@ FormData$2.prototype._lengthRetriever = function (value, callback) {
   }
 };
 
-FormData$2.prototype._multiPartHeader = function (field, value, options) {
+FormData$1.prototype._multiPartHeader = function (field, value, options) {
   /*
    * custom header specified (as string)?
    * it becomes responsible for boundary
@@ -15458,15 +15451,15 @@ FormData$2.prototype._multiPartHeader = function (field, value, options) {
 
       // add non-empty headers.
       if (header.length) {
-        contents += prop + ': ' + header.join('; ') + FormData$2.LINE_BREAK;
+        contents += prop + ': ' + header.join('; ') + FormData$1.LINE_BREAK;
       }
     }
   }
 
-  return '--' + this.getBoundary() + FormData$2.LINE_BREAK + contents + FormData$2.LINE_BREAK;
+  return '--' + this.getBoundary() + FormData$1.LINE_BREAK + contents + FormData$1.LINE_BREAK;
 };
 
-FormData$2.prototype._getContentDisposition = function (value, options) { // eslint-disable-line consistent-return
+FormData$1.prototype._getContentDisposition = function (value, options) { // eslint-disable-line consistent-return
   var filename;
 
   if (typeof options.filepath === 'string') {
@@ -15489,7 +15482,7 @@ FormData$2.prototype._getContentDisposition = function (value, options) { // esl
   }
 };
 
-FormData$2.prototype._getContentType = function (value, options) {
+FormData$1.prototype._getContentType = function (value, options) {
   // use custom content-type above all
   var contentType = options.contentType;
 
@@ -15515,15 +15508,15 @@ FormData$2.prototype._getContentType = function (value, options) {
 
   // fallback to the default content type if `value` is not simple value
   if (!contentType && value && typeof value === 'object') {
-    contentType = FormData$2.DEFAULT_CONTENT_TYPE;
+    contentType = FormData$1.DEFAULT_CONTENT_TYPE;
   }
 
   return contentType;
 };
 
-FormData$2.prototype._multiPartFooter = function () {
+FormData$1.prototype._multiPartFooter = function () {
   return function (next) {
-    var footer = FormData$2.LINE_BREAK;
+    var footer = FormData$1.LINE_BREAK;
 
     var lastPart = this._streams.length === 0;
     if (lastPart) {
@@ -15534,11 +15527,11 @@ FormData$2.prototype._multiPartFooter = function () {
   }.bind(this);
 };
 
-FormData$2.prototype._lastBoundary = function () {
-  return '--' + this.getBoundary() + '--' + FormData$2.LINE_BREAK;
+FormData$1.prototype._lastBoundary = function () {
+  return '--' + this.getBoundary() + '--' + FormData$1.LINE_BREAK;
 };
 
-FormData$2.prototype.getHeaders = function (userHeaders) {
+FormData$1.prototype.getHeaders = function (userHeaders) {
   var header;
   var formHeaders = {
     'content-type': 'multipart/form-data; boundary=' + this.getBoundary()
@@ -15553,14 +15546,14 @@ FormData$2.prototype.getHeaders = function (userHeaders) {
   return formHeaders;
 };
 
-FormData$2.prototype.setBoundary = function (boundary) {
+FormData$1.prototype.setBoundary = function (boundary) {
   if (typeof boundary !== 'string') {
     throw new TypeError('FormData boundary must be a string');
   }
   this._boundary = boundary;
 };
 
-FormData$2.prototype.getBoundary = function () {
+FormData$1.prototype.getBoundary = function () {
   if (!this._boundary) {
     this._generateBoundary();
   }
@@ -15568,7 +15561,7 @@ FormData$2.prototype.getBoundary = function () {
   return this._boundary;
 };
 
-FormData$2.prototype.getBuffer = function () {
+FormData$1.prototype.getBuffer = function () {
   var dataBuffer = new Buffer.alloc(0); // eslint-disable-line new-cap
   var boundary = this.getBoundary();
 
@@ -15584,7 +15577,7 @@ FormData$2.prototype.getBuffer = function () {
 
       // Add break after content.
       if (typeof this._streams[i] !== 'string' || this._streams[i].substring(2, boundary.length + 2) !== boundary) {
-        dataBuffer = Buffer.concat([dataBuffer, Buffer.from(FormData$2.LINE_BREAK)]);
+        dataBuffer = Buffer.concat([dataBuffer, Buffer.from(FormData$1.LINE_BREAK)]);
       }
     }
   }
@@ -15593,7 +15586,7 @@ FormData$2.prototype.getBuffer = function () {
   return Buffer.concat([dataBuffer, Buffer.from(this._lastBoundary())]);
 };
 
-FormData$2.prototype._generateBoundary = function () {
+FormData$1.prototype._generateBoundary = function () {
   // This generates a 50 character boundary similar to those used by Firefox.
 
   // They are optimized for boyer-moore parsing.
@@ -15602,7 +15595,7 @@ FormData$2.prototype._generateBoundary = function () {
 
 // Note: getLengthSync DOESN'T calculate streams length
 // As workaround one can calculate file size manually and add it as knownLength option
-FormData$2.prototype.getLengthSync = function () {
+FormData$1.prototype.getLengthSync = function () {
   var knownLength = this._overheadLength + this._valueLength;
 
   // Don't get confused, there are 3 "internal" streams for each keyval pair so it basically checks if there is any value added to the form
@@ -15626,7 +15619,7 @@ FormData$2.prototype.getLengthSync = function () {
 // Public API to check if length of added values is known
 // https://github.com/form-data/form-data/issues/196
 // https://github.com/form-data/form-data/issues/262
-FormData$2.prototype.hasKnownLength = function () {
+FormData$1.prototype.hasKnownLength = function () {
   var hasKnownLength = true;
 
   if (this._valuesToMeasure.length) {
@@ -15636,7 +15629,7 @@ FormData$2.prototype.hasKnownLength = function () {
   return hasKnownLength;
 };
 
-FormData$2.prototype.getLength = function (cb) {
+FormData$1.prototype.getLength = function (cb) {
   var knownLength = this._overheadLength + this._valueLength;
 
   if (this._streams.length) {
@@ -15662,7 +15655,7 @@ FormData$2.prototype.getLength = function (cb) {
   });
 };
 
-FormData$2.prototype.submit = function (params, cb) {
+FormData$1.prototype.submit = function (params, cb) {
   var request;
   var options;
   var defaults = { method: 'post' };
@@ -15728,7 +15721,7 @@ FormData$2.prototype.submit = function (params, cb) {
   return request;
 };
 
-FormData$2.prototype._error = function (err) {
+FormData$1.prototype._error = function (err) {
   if (!this.error) {
     this.error = err;
     this.pause();
@@ -15736,15 +15729,15 @@ FormData$2.prototype._error = function (err) {
   }
 };
 
-FormData$2.prototype.toString = function () {
+FormData$1.prototype.toString = function () {
   return '[object FormData]';
 };
-setToStringTag(FormData$2.prototype, 'FormData');
+setToStringTag(FormData$1.prototype, 'FormData');
 
 // Public API
-var form_data = FormData$2;
+var form_data = FormData$1;
 
-const FormData$1 = /*@__PURE__*/getDefaultExportFromCjs(form_data);
+const FormData$2 = /*@__PURE__*/getDefaultExportFromCjs(form_data);
 
 /**
  * Determines if the given thing is a array or js object.
@@ -15833,7 +15826,7 @@ function toFormData$1(obj, formData, options) {
   }
 
   // eslint-disable-next-line no-param-reassign
-  formData = formData || new (FormData$1 || FormData)();
+  formData = formData || new (FormData$2 || FormData)();
 
   // eslint-disable-next-line no-param-reassign
   options = utils$1.toFlatObject(
@@ -16207,7 +16200,7 @@ const platform$1 = {
   isNode: true,
   classes: {
     URLSearchParams,
-    FormData: FormData$1,
+    FormData: FormData$2,
     Blob: (typeof Blob !== 'undefined' && Blob) || null,
   },
   ALPHABET,
@@ -22397,14 +22390,16 @@ class SGDBService {
     return response.data.data[0];
   }
   async getAssets(gameId) {
-    const [grids, heroes, logos, icons] = await Promise.all([
-      axios.get(`${this.baseUrl}/grids/game/${gameId}`, { headers: this.headers }),
+    const [verticalGrids, horizontalGrids, heroes, logos, icons] = await Promise.all([
+      axios.get(`${this.baseUrl}/grids/game/${gameId}?dimensions=600x900,342x482`, { headers: this.headers }),
+      axios.get(`${this.baseUrl}/grids/game/${gameId}?dimensions=920x430,460x215`, { headers: this.headers }),
       axios.get(`${this.baseUrl}/heroes/game/${gameId}`, { headers: this.headers }),
       axios.get(`${this.baseUrl}/logos/game/${gameId}`, { headers: this.headers }),
       axios.get(`${this.baseUrl}/icons/game/${gameId}`, { headers: this.headers })
     ]);
     return {
-      grid: grids.data.data[0]?.url,
+      grid: verticalGrids.data.data[0]?.url,
+      gridHorizontal: horizontalGrids.data.data[0]?.url,
       hero: heroes.data.data[0]?.url,
       logo: logos.data.data[0]?.url,
       icon: icons.data.data[0]?.url
@@ -22481,6 +22476,7 @@ async function injectNonSteamShortcut(params) {
   let iconPath = "";
   if (customArt) {
     if (customArt.grid) await handleArt(customArt.grid, path$1.join(gridPath, `${appId}p.png`), sgdb);
+    if (customArt.gridHorizontal) await handleArt(customArt.gridHorizontal, path$1.join(gridPath, `${appId}.png`), sgdb);
     if (customArt.hero) await handleArt(customArt.hero, path$1.join(gridPath, `${appId}_hero.png`), sgdb);
     if (customArt.logo) await handleArt(customArt.logo, path$1.join(gridPath, `${appId}_logo.png`), sgdb);
     if (customArt.icon) {
@@ -22492,6 +22488,7 @@ async function injectNonSteamShortcut(params) {
     if (game) {
       const assets = await sgdb.getAssets(game.id);
       if (assets.grid) await sgdb.downloadImage(assets.grid, path$1.join(gridPath, `${appId}p.png`));
+      if (assets.gridHorizontal) await sgdb.downloadImage(assets.gridHorizontal, path$1.join(gridPath, `${appId}.png`));
       if (assets.hero) await sgdb.downloadImage(assets.hero, path$1.join(gridPath, `${appId}_hero.png`));
       if (assets.logo) await sgdb.downloadImage(assets.logo, path$1.join(gridPath, `${appId}_logo.png`));
       if (assets.icon) {
@@ -22600,6 +22597,7 @@ async function getNonSteamLibrary() {
         exe: s.Exe,
         art: {
           grid: existsSync(path$1.join(gridPath, `${appId}p.png`)) ? `steam-asset://${path$1.join(gridPath, `${appId}p.png`)}` : null,
+          gridHorizontal: existsSync(path$1.join(gridPath, `${appId}.png`)) ? `steam-asset://${path$1.join(gridPath, `${appId}.png`)}` : null,
           hero: existsSync(path$1.join(gridPath, `${appId}_hero.png`)) ? `steam-asset://${path$1.join(gridPath, `${appId}_hero.png`)}` : null,
           logo: existsSync(path$1.join(gridPath, `${appId}_logo.png`)) ? `steam-asset://${path$1.join(gridPath, `${appId}_logo.png`)}` : null
         }
@@ -22618,6 +22616,7 @@ async function updateManualArt(appId, artType, sourcePath) {
   await fs$1.mkdir(gridPath, { recursive: true });
   let fileName = "";
   if (artType === "grid") fileName = `${appId}p.png`;
+  else if (artType === "gridHorizontal") fileName = `${appId}.png`;
   else if (artType === "hero") fileName = `${appId}_hero.png`;
   else if (artType === "logo") fileName = `${appId}_logo.png`;
   const destPath = path$1.join(gridPath, fileName);
@@ -22653,6 +22652,7 @@ async function removeNonSteamShortcut(appId) {
   await fs$1.writeFile(shortcutsVdfPath, outputBuffer);
   const artFiles = [
     path$1.join(gridPath, `${appId}p.png`),
+    path$1.join(gridPath, `${appId}.png`),
     path$1.join(gridPath, `${appId}_hero.png`),
     path$1.join(gridPath, `${appId}_logo.png`),
     path$1.join(gridPath, `${appId}_icon.png`)
@@ -22664,24 +22664,56 @@ async function removeNonSteamShortcut(appId) {
 }
 async function getInstalledProtons() {
   const steamPath = await getSteamPath();
-  const commonPath = path$1.join(steamPath, "steamapps/common");
   const customPath = path$1.join(steamPath, "compatibilitytools.d");
   const protons = /* @__PURE__ */ new Set(["Nenhum", "Proton Experimental"]);
+  const libraryPaths = [steamPath];
   try {
-    if (existsSync(commonPath)) {
-      const dirs = await fs$1.readdir(commonPath);
-      dirs.filter((d) => d.startsWith("Proton")).forEach((d) => protons.add(d));
+    const vdfPath = path$1.join(steamPath, "steamapps/libraryfolders.vdf");
+    if (existsSync(vdfPath)) {
+      const vdfContent = await fs$1.readFile(vdfPath, "utf-8");
+      const parsed = main.parse(vdfContent);
+      const folders = parsed.libraryfolders || {};
+      Object.values(folders).forEach((folder) => {
+        if (folder.path && typeof folder.path === "string") {
+          libraryPaths.push(folder.path);
+        }
+      });
     }
+  } catch (e) {
+    console.error("Erro ao ler libraryfolders.vdf:", e);
+  }
+  for (const lib of libraryPaths) {
+    try {
+      const commonPath = path$1.join(lib, "steamapps/common");
+      if (existsSync(commonPath)) {
+        const dirs = await fs$1.readdir(commonPath);
+        dirs.filter((d) => d.toLowerCase().includes("proton")).forEach((d) => protons.add(d));
+      }
+    } catch (e) {
+      console.error(`Erro ao ler common path em ${lib}:`, e);
+    }
+  }
+  try {
     if (existsSync(customPath)) {
       const dirs = await fs$1.readdir(customPath);
       dirs.forEach((d) => protons.add(d));
     }
+    const altCustomPath = path$1.join(os.homedir(), ".local/share/Steam/compatibilitytools.d");
+    if (altCustomPath !== customPath && existsSync(altCustomPath)) {
+      const dirs = await fs$1.readdir(altCustomPath);
+      dirs.forEach((d) => protons.add(d));
+    }
   } catch (e) {
-    console.error("Erro ao buscar Protons:", e);
+    console.error("Erro ao buscar custom Protons:", e);
   }
   return Array.from(protons);
 }
 
+app.setName("NonSteamAutomation");
+if (process.platform === "linux") {
+  app.setDesktopName("NonSteamAutomation.desktop");
+  app.commandLine.appendSwitch("disable-gpu-vsync");
+}
 const __dirname$1 = path$2.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path$2.join(__dirname$1, "..");
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];

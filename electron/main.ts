@@ -9,6 +9,14 @@ import fs from 'fs/promises'
 import os from 'os'
 import { exec } from 'node:child_process'
 
+// Previne que o GNOME faça fuzzy-match com a string "steam" e use o ícone da Steam
+app.setName('NonSteamAutomation')
+if (process.platform === 'linux') {
+  app.setDesktopName('NonSteamAutomation.desktop')
+  // Suprime o spam de erros 'GetVSyncParametersIfAvailable' no console do Linux
+  app.commandLine.appendSwitch('disable-gpu-vsync')
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 process.env.APP_ROOT = path.join(__dirname, '..')

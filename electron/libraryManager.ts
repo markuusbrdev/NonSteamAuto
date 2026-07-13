@@ -4,6 +4,7 @@ import path from 'path'
 import os from 'os'
 import CRC32 from 'crc-32'
 import * as VDF from 'steam-binary-vdf'
+import vdf from 'vdf-parser'
 
 async function getSteamPath() {
   const paths = [
@@ -51,6 +52,7 @@ export async function getNonSteamLibrary() {
         exe: s.Exe,
         art: {
           grid: existsSync(path.join(gridPath, `${appId}p.png`)) ? `steam-asset://${path.join(gridPath, `${appId}p.png`)}` : null,
+          gridHorizontal: existsSync(path.join(gridPath, `${appId}.png`)) ? `steam-asset://${path.join(gridPath, `${appId}.png`)}` : null,
           hero: existsSync(path.join(gridPath, `${appId}_hero.png`)) ? `steam-asset://${path.join(gridPath, `${appId}_hero.png`)}` : null,
           logo: existsSync(path.join(gridPath, `${appId}_logo.png`)) ? `steam-asset://${path.join(gridPath, `${appId}_logo.png`)}` : null
         }
@@ -72,6 +74,7 @@ export async function updateManualArt(appId: number, artType: string, sourcePath
 
   let fileName = ''
   if (artType === 'grid') fileName = `${appId}p.png`
+  else if (artType === 'gridHorizontal') fileName = `${appId}.png`
   else if (artType === 'hero') fileName = `${appId}_hero.png`
   else if (artType === 'logo') fileName = `${appId}_logo.png`
 
@@ -116,6 +119,7 @@ export async function removeNonSteamShortcut(appId: number) {
   // Remover artes
   const artFiles = [
     path.join(gridPath, `${appId}p.png`),
+    path.join(gridPath, `${appId}.png`),
     path.join(gridPath, `${appId}_hero.png`),
     path.join(gridPath, `${appId}_logo.png`),
     path.join(gridPath, `${appId}_icon.png`)
@@ -130,22 +134,56 @@ export async function removeNonSteamShortcut(appId: number) {
 
 export async function getInstalledProtons() {
   const steamPath = await getSteamPath()
-  const commonPath = path.join(steamPath, 'steamapps/common')
   const customPath = path.join(steamPath, 'compatibilitytools.d')
   
   const protons = new Set<string>(['Nenhum', 'Proton Experimental'])
 
+  // 1. Get all library paths
+  const libraryPaths = [steamPath]
   try {
-    if (existsSync(commonPath)) {
-      const dirs = await fs.readdir(commonPath)
-      dirs.filter(d => d.startsWith('Proton')).forEach(d => protons.add(d))
+    const vdfPath = path.join(steamPath, 'steamapps/libraryfolders.vdf')
+    if (existsSync(vdfPath)) {
+      const vdfContent = await fs.readFile(vdfPath, 'utf-8')
+      const parsed = vdf.parse(vdfContent) as any
+      const folders = parsed.libraryfolders || {}
+      Object.values(folders).forEach((folder: any) => {
+        if (folder.path && typeof folder.path === 'string') {
+          libraryPaths.push(folder.path)
+        }
+      })
     }
+  } catch (e) {
+    console.error('Erro ao ler libraryfolders.vdf:', e)
+  }
+
+  // 2. Iterate through all library paths and check steamapps/common
+  for (const lib of libraryPaths) {
+    try {
+      const commonPath = path.join(lib, 'steamapps/common')
+      if (existsSync(commonPath)) {
+        const dirs = await fs.readdir(commonPath)
+        dirs.filter(d => d.toLowerCase().includes('proton')).forEach(d => protons.add(d))
+      }
+    } catch (e) {
+      console.error(`Erro ao ler common path em ${lib}:`, e)
+    }
+  }
+
+  // 3. Custom protons (GE-Proton etc)
+  try {
     if (existsSync(customPath)) {
       const dirs = await fs.readdir(customPath)
       dirs.forEach(d => protons.add(d))
     }
+    
+    // Also check ~/.local/share/Steam/compatibilitytools.d just in case flatpak or custom mapping
+    const altCustomPath = path.join(os.homedir(), '.local/share/Steam/compatibilitytools.d')
+    if (altCustomPath !== customPath && existsSync(altCustomPath)) {
+      const dirs = await fs.readdir(altCustomPath)
+      dirs.forEach(d => protons.add(d))
+    }
   } catch (e) {
-    console.error('Erro ao buscar Protons:', e)
+    console.error('Erro ao buscar custom Protons:', e)
   }
 
   return Array.from(protons)

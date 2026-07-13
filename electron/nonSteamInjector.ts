@@ -69,7 +69,7 @@ export async function injectNonSteamShortcut(params: {
   sgdbApiKey: string,
   launchOptions?: string,
   protonVersion?: string,
-  customArt?: { grid?: string, hero?: string, logo?: string, icon?: string }
+  customArt?: { grid?: string, gridHorizontal?: string, hero?: string, logo?: string, icon?: string }
 }) {
   const { exePath, gameName, sgdbApiKey, launchOptions, protonVersion, customArt } = params
   const steamPath = await getSteamPath()
@@ -92,6 +92,7 @@ export async function injectNonSteamShortcut(params: {
 
   if (customArt) {
     if (customArt.grid) await handleArt(customArt.grid, path.join(gridPath, `${appId}p.png`), sgdb)
+    if (customArt.gridHorizontal) await handleArt(customArt.gridHorizontal, path.join(gridPath, `${appId}.png`), sgdb)
     if (customArt.hero) await handleArt(customArt.hero, path.join(gridPath, `${appId}_hero.png`), sgdb)
     if (customArt.logo) await handleArt(customArt.logo, path.join(gridPath, `${appId}_logo.png`), sgdb)
     if (customArt.icon) {
@@ -103,6 +104,7 @@ export async function injectNonSteamShortcut(params: {
     if (game) {
       const assets = await sgdb.getAssets(game.id)
       if (assets.grid) await sgdb.downloadImage(assets.grid, path.join(gridPath, `${appId}p.png`))
+      if (assets.gridHorizontal) await sgdb.downloadImage(assets.gridHorizontal, path.join(gridPath, `${appId}.png`))
       if (assets.hero) await sgdb.downloadImage(assets.hero, path.join(gridPath, `${appId}_hero.png`))
       if (assets.logo) await sgdb.downloadImage(assets.logo, path.join(gridPath, `${appId}_logo.png`))
       if (assets.icon) {
