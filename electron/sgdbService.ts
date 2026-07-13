@@ -1,6 +1,6 @@
 import axios from 'axios'
 import fs from 'fs/promises'
-import path from 'path'
+
 
 export class SGDBService {
   private apiKey: string
@@ -35,6 +35,19 @@ export class SGDBService {
       logo: logos.data.data[0]?.url,
       icon: icons.data.data[0]?.url
     }
+  }
+
+  async getAlternativeAssets(gameId: number, type: 'grid' | 'gridHorizontal' | 'hero' | 'logo' | 'icon') {
+    let endpoint = ''
+    let params = ''
+    if (type === 'grid') { endpoint = 'grids'; params = '?dimensions=600x900,342x482' }
+    else if (type === 'gridHorizontal') { endpoint = 'grids'; params = '?dimensions=920x430,460x215' }
+    else if (type === 'hero') endpoint = 'heroes'
+    else if (type === 'logo') endpoint = 'logos'
+    else if (type === 'icon') endpoint = 'icons'
+
+    const response = await axios.get(`${this.baseUrl}/${endpoint}/game/${gameId}${params}`, { headers: this.headers })
+    return response.data.data.map((item: any) => item.url)
   }
 
   async downloadImage(url: string, dest: string) {

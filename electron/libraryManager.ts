@@ -33,6 +33,16 @@ export async function getNonSteamLibrary() {
 
   if (!existsSync(shortcutsVdfPath)) return []
 
+  const configVdfPath = path.join(steamPath, 'config/config.vdf')
+  let configData: any = {}
+  try {
+    if (existsSync(configVdfPath)) {
+      const content = await fs.readFile(configVdfPath, 'utf-8')
+      configData = vdf.parse(content)
+    }
+  } catch(e) {}
+  const compatMapping = configData?.InstallConfigStore?.Software?.Valve?.Steam?.CompatibilityMapping || {}
+
   try {
     const buffer = await fs.readFile(shortcutsVdfPath)
     const readFn = (VDF as any).readVdf || (VDF as any).default?.readVdf
@@ -42,19 +52,24 @@ export async function getNonSteamLibrary() {
     const shortcuts = Object.values(shortcutsObj)
 
     return shortcuts.map((s: any) => {
-      const cleanExe = s.Exe.replace(/"/g, '')
-      const shortcutString = `\x00${s.AppName}\x00${cleanExe}`
+      const cleanExe = (s.Exe || s.exe || '').replace(/"/g, '')
+      const shortcutString = `\x00${s.AppName || s.appname}\x00${cleanExe}`
       const appId = (CRC32.str(shortcutString) | 0x80000000) >>> 0
+
+      const protonVersion = compatMapping[appId.toString()]?.name || 'Nenhum'
 
       return {
         appId,
-        name: s.AppName,
-        exe: s.Exe,
+        name: s.AppName || s.appname,
+        exe: s.Exe || s.exe,
+        launchOptions: s.LaunchOptions || s.launchoptions || '',
+        proton: protonVersion,
         art: {
           grid: existsSync(path.join(gridPath, `${appId}p.png`)) ? `steam-asset://${path.join(gridPath, `${appId}p.png`)}` : null,
           gridHorizontal: existsSync(path.join(gridPath, `${appId}.png`)) ? `steam-asset://${path.join(gridPath, `${appId}.png`)}` : null,
           hero: existsSync(path.join(gridPath, `${appId}_hero.png`)) ? `steam-asset://${path.join(gridPath, `${appId}_hero.png`)}` : null,
-          logo: existsSync(path.join(gridPath, `${appId}_logo.png`)) ? `steam-asset://${path.join(gridPath, `${appId}_logo.png`)}` : null
+          logo: existsSync(path.join(gridPath, `${appId}_logo.png`)) ? `steam-asset://${path.join(gridPath, `${appId}_logo.png`)}` : null,
+          icon: existsSync(path.join(gridPath, `${appId}_icon.png`)) ? `steam-asset://${path.join(gridPath, `${appId}_icon.png`)}` : ((s.icon && existsSync(s.icon)) ? `steam-asset://${s.icon}` : null)
         }
       }
     })
@@ -102,7 +117,7 @@ export async function removeNonSteamShortcut(appId: number) {
   if (shortcutsData.shortcuts) {
     Object.keys(shortcutsData.shortcuts).forEach(key => {
       const s = shortcutsData.shortcuts[key]
-      const shortcutString = `\x00${s.AppName}\x00${s.Exe}`
+      const shortcutString = `\x00${s.AppName || s.appname}\x00${s.Exe || s.exe}`
       const sAppId = (CRC32.str(shortcutString) | 0x80000000) >>> 0
       
       if (sAppId !== appId) {
@@ -136,7 +151,10 @@ export async function getInstalledProtons() {
   const steamPath = await getSteamPath()
   const customPath = path.join(steamPath, 'compatibilitytools.d')
   
-  const protons = new Set<string>(['Nenhum', 'Proton Experimental'])
+  const protons = new Map<string, string>([
+    ['Nenhum', 'Nenhum'],
+    ['proton_experimental', 'Proton Experimental']
+  ])
 
   // 1. Get all library paths
   const libraryPaths = [steamPath]
@@ -162,7 +180,13 @@ export async function getInstalledProtons() {
       const commonPath = path.join(lib, 'steamapps/common')
       if (existsSync(commonPath)) {
         const dirs = await fs.readdir(commonPath)
-        dirs.filter(d => d.toLowerCase().includes('proton')).forEach(d => protons.add(d))
+        for (const d of dirs) {
+          if (d.toLowerCase().includes('proton')) {
+             let internalName = d.toLowerCase().replace(/ /g, '_').replace(/\./g, '')
+             if (d === 'Proton Experimental') internalName = 'proton_experimental'
+             protons.set(internalName, d)
+          }
+        }
       }
     } catch (e) {
       console.error(`Erro ao ler common path em ${lib}:`, e)
@@ -170,21 +194,31 @@ export async function getInstalledProtons() {
   }
 
   // 3. Custom protons (GE-Proton etc)
-  try {
-    if (existsSync(customPath)) {
-      const dirs = await fs.readdir(customPath)
-      dirs.forEach(d => protons.add(d))
-    }
-    
-    // Also check ~/.local/share/Steam/compatibilitytools.d just in case flatpak or custom mapping
-    const altCustomPath = path.join(os.homedir(), '.local/share/Steam/compatibilitytools.d')
-    if (altCustomPath !== customPath && existsSync(altCustomPath)) {
-      const dirs = await fs.readdir(altCustomPath)
-      dirs.forEach(d => protons.add(d))
-    }
-  } catch (e) {
-    console.error('Erro ao buscar custom Protons:', e)
+  const loadCustomProtons = async (p: string) => {
+    try {
+      if (existsSync(p)) {
+        const dirs = await fs.readdir(p)
+        for (const d of dirs) {
+          const vdfPath = path.join(p, d, 'compatibilitytool.vdf')
+          let internalName = d
+          let displayName = d
+          if (existsSync(vdfPath)) {
+             const content = await fs.readFile(vdfPath, 'utf-8')
+             const parsed = vdf.parse(content) as any
+             if (parsed?.compatibilitytools?.compat_tools) {
+                internalName = Object.keys(parsed.compatibilitytools.compat_tools)[0]
+                displayName = parsed.compatibilitytools.compat_tools[internalName]?.display_name || d
+             }
+          }
+          protons.set(internalName, displayName)
+        }
+      }
+    } catch (e) {}
   }
+  
+  await loadCustomProtons(customPath)
+  const altCustomPath = path.join(os.homedir(), '.local/share/Steam/compatibilitytools.d')
+  if (altCustomPath !== customPath) await loadCustomProtons(altCustomPath)
 
-  return Array.from(protons)
+  return Array.from(protons.entries()).map(([value, label]) => ({ value, label }))
 }

@@ -4,31 +4,35 @@ interface Game {
   appId: number
   name: string
   exe: string
+  launchOptions: string
+  proton: string
   art: {
     grid: string | null
+    gridHorizontal: string | null
     hero: string | null
     logo: string | null
+    icon: string | null
   }
 }
 
-export const LocalLibrary: React.FC = () => {
+export const LocalLibrary: React.FC<{ onEdit: (game: Game) => void, onShowAchievements?: (appId: number) => void, refreshTrigger?: number }> = ({ onEdit, onShowAchievements, refreshTrigger }) => {
   const [library, setLibrary] = useState<Game[]>([])
   const [loading, setLoading] = useState(true)
 
   const load = async () => {
-    if (!window.api?.getLibrary) {
+    if (!(window as any).api?.getLibrary) {
       setLoading(false)
       return
     }
     setLoading(true)
-    const data = await window.api.getLibrary()
+    const data = await (window as any).api.getLibrary()
     setLibrary(data)
     setLoading(false)
   }
 
   useEffect(() => {
     load()
-  }, [])
+  }, [refreshTrigger])
 
   const handleRemove = async (appId: number, name: string) => {
     if (!confirm(`Tem certeza que deseja remover "${name}" da Steam?`)) return
@@ -99,6 +103,24 @@ export const LocalLibrary: React.FC = () => {
               </div>
 
               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={() => onEdit(game)}
+                  className="p-2 bg-white/10 hover:bg-white/20 text-white !rounded-lg transition-colors"
+                  title="Editar Jogo"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button 
+                  onClick={() => onShowAchievements && onShowAchievements(game.appId)}
+                  className="p-2 bg-adwaita-blue/10 hover:bg-adwaita-blue/20 text-adwaita-blue !rounded-lg transition-colors"
+                  title="Ver Conquistas (Offline)"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                </button>
                 <button 
                   onClick={() => handleRemove(game.appId, game.name)}
                   className="adwaita-btn-destructive p-2 !rounded-lg"

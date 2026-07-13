@@ -4,18 +4,19 @@ interface Props {
   apiKey: string
   onComplete: () => void
   onCancel: () => void
+  initialData?: any
 }
 
-export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel }) => {
-  const [step, setStep] = useState(1)
+export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel, initialData }) => {
+  const [step, setStep] = useState(initialData ? 2 : 1)
   const [loading, setLoading] = useState(false)
-  const [protonVersions, setProtonVersions] = useState<string[]>(['Nenhum', 'Proton Experimental'])
+  const [protonVersions, setProtonVersions] = useState<{value: string, label: string}[]>([{value: 'Nenhum', label: 'Nenhum'}])
   
   const [formData, setFormData] = useState({
-    name: '',
-    exe: '',
-    launchOptions: '',
-    proton: 'Nenhum'
+    name: initialData?.name || '',
+    exe: initialData?.exe || '',
+    launchOptions: initialData?.launchOptions || '',
+    proton: initialData?.proton || 'Nenhum'
   })
 
   // Presets
@@ -23,7 +24,15 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel 
   const [useGameMode, setUseGameMode] = useState(false)
   
   const [arts, setArts] = useState<{ grid: string | null, gridHorizontal: string | null, hero: string | null, logo: string | null, icon: string | null }>({
-    grid: null, gridHorizontal: null, hero: null, logo: null, icon: null
+    grid: initialData?.art?.grid || null, 
+    gridHorizontal: initialData?.art?.gridHorizontal || null, 
+    hero: initialData?.art?.hero || null, 
+    logo: initialData?.art?.logo || null, 
+    icon: initialData?.art?.icon || null
+  })
+
+  const [artModal, setArtModal] = useState<{ isOpen: boolean, type: 'grid' | 'gridHorizontal' | 'hero' | 'logo' | 'icon' | null, images: string[], loading: boolean }>({
+    isOpen: false, type: null, images: [], loading: false
   })
 
   useEffect(() => {
@@ -74,6 +83,17 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel 
     }
   }
 
+  const openArtModal = async (type: 'grid' | 'gridHorizontal' | 'hero' | 'logo' | 'icon') => {
+    setArtModal({ isOpen: true, type, images: [], loading: true })
+    try {
+      const images = await (window as any).api.getAlternativeArts(formData.name, apiKey, type)
+      setArtModal({ isOpen: true, type, images: images || [], loading: false })
+    } catch (e) {
+      console.error(e)
+      setArtModal({ isOpen: true, type, images: [], loading: false })
+    }
+  }
+
   const handleInject = async () => {
     setLoading(true)
     
@@ -91,7 +111,8 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel 
         sgdbApiKey: apiKey,
         launchOptions: finalLaunchOptions.trim(),
         protonVersion: formData.proton === 'Nenhum' ? undefined : formData.proton,
-        customArt: arts
+        customArt: arts,
+        oldAppName: initialData?.name
       })
       
       if (result.success) {
@@ -111,9 +132,9 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel 
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-xl font-bold">
-            {step === 1 ? 'Configuração do Jogo' : 'Artes da Biblioteca'}
+            {initialData ? 'Editar Jogo' : step === 1 ? 'Configuração do Jogo' : 'Artes da Biblioteca'}
           </h2>
-          <p className="text-adwaita-text-secondary text-sm">{step === 1 ? 'Dados básicos e compatibilidade' : 'Confirme como o jogo aparecerá na Steam'}</p>
+          <p className="text-adwaita-text-secondary text-sm">{initialData && step === 2 ? 'Modifique as artes ou confirme as edições' : step === 1 ? 'Dados básicos e compatibilidade' : 'Confirme como o jogo aparecerá na Steam'}</p>
         </div>
         <div className="flex gap-2">
           <div className={`h-2 w-2 rounded-full ${step >= 1 ? 'bg-adwaita-blue' : 'bg-white/10'}`}></div>
@@ -192,7 +213,7 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel 
                 onChange={(e) => setFormData({ ...formData, proton: e.target.value })}
                 className="adwaita-input w-full text-sm appearance-none cursor-pointer"
               >
-                {protonVersions.map(v => <option key={v} value={v} className="bg-[#2b2b2b] text-white">{v}</option>)}
+                {protonVersions.map(v => <option key={v.value} value={v.value} className="bg-[#2b2b2b] text-white">{v.label}</option>)}
               </select>
             </div>
           </div>
@@ -226,40 +247,16 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel 
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <p className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1">Capa</p>
-              <div className="aspect-[2/3] bg-black/40 rounded-xl overflow-hidden border border-white/5 relative group shadow-inner">
-                {arts.grid ? <img src={arts.grid} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-adwaita-text-secondary text-[10px]">Sem Arte</div>}
-                <button 
-                  onClick={() => handleSelectLocalArt('grid')}
-                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold transition-all"
-                >
-                  Trocar
-                </button>
-              </div>
-            </div>
-            <div className="col-span-2 space-y-4">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1">Banner</p>
-                <div className="aspect-[21/9] bg-black/40 rounded-xl overflow-hidden border border-white/5 relative group shadow-inner">
-                  {arts.hero ? <img src={arts.hero} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-adwaita-text-secondary text-[10px]">Sem Arte</div>}
+                <p className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1">Capa Vertical</p>
+                <div className="aspect-[2/3] bg-black/40 rounded-xl overflow-hidden border border-white/5 relative group shadow-inner">
+                  {arts.grid ? <img src={arts.grid} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-adwaita-text-secondary text-[10px]">Sem Arte</div>}
                   <button 
-                    onClick={() => handleSelectLocalArt('hero')}
+                    onClick={() => openArtModal('grid')}
                     className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold transition-all"
                   >
-                    Trocar
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1">Capa Horizontal (Big Picture)</p>
-                <div className="aspect-[21/9] bg-black/40 rounded-xl overflow-hidden border border-white/5 relative group shadow-inner">
-                  {arts.gridHorizontal ? <img src={arts.gridHorizontal} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-adwaita-text-secondary text-[10px]">Sem Arte</div>}
-                  <button 
-                    onClick={() => handleSelectLocalArt('gridHorizontal')}
-                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold transition-all"
-                  >
-                    Trocar
+                    Alterar
                   </button>
                 </div>
               </div>
@@ -269,48 +266,166 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel 
                   <div className="h-16 bg-black/40 rounded-xl overflow-hidden border border-white/5 relative group p-2 shadow-inner">
                     {arts.logo ? <img src={arts.logo} className="h-full object-contain mx-auto" /> : <div className="flex items-center justify-center h-full text-adwaita-text-secondary text-[10px]">Sem Logo</div>}
                     <button 
-                      onClick={() => handleSelectLocalArt('logo')}
+                      onClick={() => openArtModal('logo')}
                       className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold transition-all"
                     >
-                      Trocar
+                      Alterar
                     </button>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <p className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1">Ícone</p>
-                  <div className="h-16 w-16 bg-black/40 rounded-xl overflow-hidden border border-white/5 relative group p-2 shadow-inner">
+                  <div className="h-16 w-16 bg-black/40 rounded-xl overflow-hidden border border-white/5 relative group p-2 shadow-inner mx-auto">
                     {arts.icon ? <img src={arts.icon} className="h-full w-full object-contain" /> : <div className="flex items-center justify-center h-full text-adwaita-text-secondary text-[10px]">Sem Ícone</div>}
                     <button 
-                      onClick={() => handleSelectLocalArt('icon')}
+                      onClick={() => openArtModal('icon')}
                       className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold transition-all"
                     >
-                      Trocar
+                      Alterar
                     </button>
                   </div>
                 </div>
               </div>
             </div>
+            <div className="col-span-2 space-y-4">
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1">Banner</p>
+                <div className="aspect-[21/9] bg-black/40 rounded-xl overflow-hidden border border-white/5 relative group shadow-inner">
+                  {arts.hero ? <img src={arts.hero} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-adwaita-text-secondary text-[10px]">Sem Arte</div>}
+                  <button 
+                    onClick={() => openArtModal('hero')}
+                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold transition-all"
+                  >
+                    Alterar
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1">Capa Horizontal (Big Picture)</p>
+                <div className="aspect-[21/9] bg-black/40 rounded-xl overflow-hidden border border-white/5 relative group shadow-inner">
+                  {arts.gridHorizontal ? <img src={arts.gridHorizontal} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-adwaita-text-secondary text-[10px]">Sem Arte</div>}
+                  <button 
+                    onClick={() => openArtModal('gridHorizontal')}
+                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold transition-all"
+                  >
+                    Alterar
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="bg-white/5 p-4 rounded-xl text-xs text-adwaita-text-secondary border border-white/5">
-             <p>Injetando <span className="text-white font-bold">{formData.name}</span></p>
-             <p className="mt-1 opacity-60">Proton: {formData.proton}</p>
-          </div>
+          {initialData ? (
+            <div className="grid grid-cols-2 gap-4 bg-black/20 p-4 rounded-xl border border-white/5">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1">Versão do Proton</label>
+                <select 
+                  value={formData.proton}
+                  onChange={(e) => setFormData({ ...formData, proton: e.target.value })}
+                  className="adwaita-input w-full text-sm appearance-none cursor-pointer"
+                >
+                  {protonVersions.map(v => <option key={v.value} value={v.value} className="bg-[#2b2b2b] text-white">{v.label}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1">Parâmetros Adicionais</label>
+                <input 
+                  placeholder="Ex: -windowed -nojoy"
+                  value={formData.launchOptions}
+                  onChange={(e) => setFormData({ ...formData, launchOptions: e.target.value })}
+                  className="adwaita-input w-full text-sm"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white/5 p-4 rounded-xl text-xs text-adwaita-text-secondary border border-white/5">
+               <p>Injetando <span className="text-white font-bold">{formData.name}</span></p>
+               <p className="mt-1 opacity-60">Proton: {protonVersions.find(p => p.value === formData.proton)?.label || formData.proton}</p>
+            </div>
+          )}
 
           <div className="flex gap-3">
-            <button 
-              onClick={() => setStep(1)}
-              className="flex-1 adwaita-btn-secondary"
-            >
-              Voltar
-            </button>
+            {initialData ? (
+              <button 
+                onClick={onCancel}
+                className="flex-1 adwaita-btn-secondary"
+              >
+                Cancelar
+              </button>
+            ) : (
+              <button 
+                onClick={() => setStep(1)}
+                className="flex-1 adwaita-btn-secondary"
+              >
+                Voltar
+              </button>
+            )}
             <button 
               onClick={handleInject}
               disabled={loading}
               className="flex-[2] adwaita-btn-primary"
             >
-              {loading ? 'Injetando...' : 'Confirmar e Injetar'}
+              {loading ? (initialData ? 'Salvando...' : 'Injetando...') : (initialData ? 'Salvar Alterações' : 'Confirmar e Injetar')}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Seleção de Arte */}
+      {artModal.isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm">
+          <div className="bg-adwaita-card p-6 rounded-2xl max-w-3xl w-full max-h-[80vh] flex flex-col shadow-2xl border border-white/10">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold">Alterar Arte</h3>
+              <button onClick={() => setArtModal({ ...artModal, isOpen: false })} className="text-white/50 hover:text-white transition-colors">✕</button>
+            </div>
+            
+            <button 
+              onClick={() => {
+                setArtModal({ ...artModal, isOpen: false })
+                handleSelectLocalArt(artModal.type!)
+              }}
+              className="w-full adwaita-btn-secondary mb-6 !py-3 flex justify-center items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+              Selecionar arquivo do computador...
+            </button>
+            
+            <p className="text-xs font-bold text-adwaita-text-secondary uppercase mb-4">Ou escolha do SteamGridDB</p>
+            
+            <div className="flex-1 overflow-y-auto min-h-0 pr-2">
+              {artModal.loading ? (
+                <div className="flex justify-center items-center py-20">
+                  <div className="animate-spin w-8 h-8 border-4 border-adwaita-blue border-t-transparent rounded-full"></div>
+                </div>
+              ) : (
+                <div className={`grid gap-4 ${artModal.type === 'hero' || artModal.type === 'gridHorizontal' ? 'grid-cols-2' : artModal.type === 'logo' || artModal.type === 'icon' ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                  {artModal.images.map((url, i) => (
+                    <button 
+                      key={i} 
+                      onClick={async () => {
+                        try {
+                          const newArt = await (window as any).api.downloadTempArt(url)
+                          setArts({ ...arts, [artModal.type!]: newArt })
+                          setArtModal({ ...artModal, isOpen: false })
+                        } catch (e) {
+                          alert('Falha ao baixar imagem.')
+                        }
+                      }}
+                      className="border-2 border-transparent hover:border-adwaita-blue rounded-xl overflow-hidden transition-all focus:outline-none focus:border-adwaita-blue bg-black/40 group relative"
+                    >
+                      <img src={url} className={`w-full object-contain ${artModal.type === 'grid' ? 'aspect-[2/3]' : artModal.type === 'hero' || artModal.type === 'gridHorizontal' ? 'aspect-[21/9]' : 'aspect-square'}`} />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-xs font-bold">
+                        Selecionar
+                      </div>
+                    </button>
+                  ))}
+                  {artModal.images.length === 0 && (
+                    <p className="col-span-full text-center text-white/50 text-sm py-10">Nenhuma arte encontrada para este tipo.</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

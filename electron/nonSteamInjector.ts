@@ -57,7 +57,7 @@ async function handleArt(source: string, dest: string, sgdb: SGDBService) {
     await sgdb.downloadImage(source, dest)
   } else {
     const localPath = source.replace('steam-asset://', '')
-    if (existsSync(localPath)) {
+    if (existsSync(localPath) && localPath !== dest) {
       await fs.copyFile(localPath, dest)
     }
   }
@@ -69,9 +69,10 @@ export async function injectNonSteamShortcut(params: {
   sgdbApiKey: string,
   launchOptions?: string,
   protonVersion?: string,
-  customArt?: { grid?: string, gridHorizontal?: string, hero?: string, logo?: string, icon?: string }
+  customArt?: { grid?: string, gridHorizontal?: string, hero?: string, logo?: string, icon?: string },
+  oldAppName?: string
 }) {
-  const { exePath, gameName, sgdbApiKey, launchOptions, protonVersion, customArt } = params
+  const { exePath, gameName, sgdbApiKey, launchOptions, protonVersion, customArt, oldAppName } = params
   const steamPath = await getSteamPath()
   const userDataPath = path.join(steamPath, 'userdata')
   
@@ -148,7 +149,8 @@ export async function injectNonSteamShortcut(params: {
   if (shortcutsData.shortcuts) {
     Object.keys(shortcutsData.shortcuts).forEach(key => {
       const s = shortcutsData.shortcuts[key]
-      if (s.AppName !== gameName) {
+      const nameToMatch = oldAppName || gameName
+      if (s.AppName !== nameToMatch && s.appname !== nameToMatch) {
         cleanShortcuts[index++] = s
       }
     })

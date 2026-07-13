@@ -6,7 +6,7 @@ export function parseVDF(content: string) {
   const result: any = {};
   const lines = content.split('\n');
   
-  let currentKey = '';
+
   
   for (let line of lines) {
     line = line.trim();

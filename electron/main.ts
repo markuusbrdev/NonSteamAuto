@@ -2,9 +2,12 @@ import { app, BrowserWindow, ipcMain, dialog, protocol, net } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { injectNonSteamShortcut } from './nonSteamInjector'
-import { getSavedApiKey, saveApiKey } from './config'
+import { getSavedApiKey, saveApiKey, getConfig, saveConfigData } from './storeManager'
 import { getNonSteamLibrary, updateManualArt, getInstalledProtons, removeNonSteamShortcut } from './libraryManager'
+import { launchPatchedSteam } from './steamPatcher'
+import { getHybridAchievements } from './goldbergParser'
 import { SGDBService } from './sgdbService'
+import { checkGlumaStatus, downloadAndExtractGreenLuma } from './glumaFetcher'
 import fs from 'fs/promises'
 import os from 'os'
 import { exec } from 'node:child_process'
@@ -12,6 +15,7 @@ import { exec } from 'node:child_process'
 // Previne que o GNOME faça fuzzy-match com a string "steam" e use o ícone da Steam
 app.setName('NonSteamAutomation')
 if (process.platform === 'linux') {
+  // @ts-ignore
   app.setDesktopName('NonSteamAutomation.desktop')
   // Suprime o spam de erros 'GetVSyncParametersIfAvailable' no console do Linux
   app.commandLine.appendSwitch('disable-gpu-vsync')
@@ -32,8 +36,10 @@ protocol.registerSchemesAsPrivileged([
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1100,
-    height: 750,
+    width: 1280,
+    height: 900,
+    minWidth: 1200,
+    minHeight: 800,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     frame: false,
     webPreferences: {
@@ -75,7 +81,22 @@ app.whenReady().then(() => {
   ipcMain.handle('get-api-key', () => getSavedApiKey())
   ipcMain.handle('save-api-key', async (_event, apiKey) => await saveApiKey(apiKey))
 
+  ipcMain.handle('get-config', () => getConfig())
+  ipcMain.handle('save-config-data', async (_event, data) => await saveConfigData(data.key, data.value))
+
   ipcMain.handle('get-protons', () => getInstalledProtons())
+  
+  ipcMain.handle('launch-patched-steam', async (_event, greenLumaPath) => await launchPatchedSteam(greenLumaPath))
+  ipcMain.handle('get-hybrid-achievements', async (_event, data) => await getHybridAchievements(data.appId, data.apiKey))
+
+  ipcMain.handle('check-gluma-status', async () => {
+    return await checkGlumaStatus()
+  })
+
+  ipcMain.handle('download-gluma', async () => {
+    await downloadAndExtractGreenLuma()
+    return true
+  })
 
   ipcMain.handle('select-exe', async () => {
     const result = await dialog.showOpenDialog({
@@ -91,6 +112,14 @@ app.whenReady().then(() => {
     const game = await sgdb.searchGame(gameName)
     if (!game) return null
     return await sgdb.getAssets(game.id)
+  })
+
+  // Nova função para buscar lista de alternativas de uma arte
+  ipcMain.handle('get-alternative-arts', async (_event, { gameName, apiKey, type }) => {
+    const sgdb = new SGDBService(apiKey)
+    const game = await sgdb.searchGame(gameName)
+    if (!game) return []
+    return await sgdb.getAlternativeAssets(game.id, type)
   })
 
   // Função para baixar imagem temporária para o preview (se o usuário trocar)
