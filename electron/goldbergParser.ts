@@ -38,8 +38,21 @@ async function getLibraryPaths() {
   return libraryPaths
 }
 
-export async function getLocalAchievements(appId: string): Promise<string[]> {
+export async function getLocalAchievements(appId: string, exePath?: string, achievementsJsonPath?: string): Promise<string[]> {
   const potentialPaths: string[] = []
+
+  if (achievementsJsonPath) {
+    potentialPaths.push(achievementsJsonPath)
+  }
+
+  // 0. Local Game Directory (If game saves locally next to the exe)
+  if (exePath) {
+    const gameDir = path.dirname(exePath)
+    potentialPaths.push(
+      path.join(gameDir, 'Goldberg SteamEmu Saves', appId, 'achievements.json'),
+      path.join(gameDir, 'steam_settings', 'saves', appId, 'achievements.json') // Another common pattern
+    )
+  }
 
   // 1. Native Linux paths
   potentialPaths.push(
@@ -101,14 +114,28 @@ export interface HybridAchievement extends SteamAchievement {
   currentIcon: string
 }
 
-export async function getHybridAchievements(appId: string, apiKey: string): Promise<HybridAchievement[]> {
-  const localUnlocked = await getLocalAchievements(appId)
+export async function getHybridAchievements(appId: string, apiKey: string, exePath?: string, achievementsJsonPath?: string): Promise<HybridAchievement[]> {
+  const localUnlocked = await getLocalAchievements(appId, exePath, achievementsJsonPath)
   
   if (!apiKey) {
     throw new Error('Steam Web API Key não configurada.')
   }
 
-  const schema = await fetchAchievementsSchema(appId, apiKey)
+  let realAppId = appId
+  
+  const { getRealAppIdCache } = await import('./storeManager')
+  const cachedRealAppId = await getRealAppIdCache(appId)
+  
+  if (cachedRealAppId) {
+    realAppId = cachedRealAppId
+  } else if (achievementsJsonPath) {
+    const parentFolder = path.basename(path.dirname(achievementsJsonPath))
+    if (/^\d+$/.test(parentFolder)) {
+      realAppId = parentFolder
+    }
+  }
+
+  const schema = await fetchAchievementsSchema(realAppId, apiKey)
   
   if (!schema || schema.length === 0) {
     return []

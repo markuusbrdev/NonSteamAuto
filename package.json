@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && electron-builder",
+    "pack": "vite build && electron-builder --dir",
+    "build": "tsc && vite build && electron-builder --linux",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
@@ -40,11 +41,25 @@
   },
   "main": "dist-electron/main.js",
   "build": {
-    "appId": "com.nonsteamautomation.app",
-    "productName": "NonSteamAutomation",
+    "appId": "com.marcus.nonsteamauto",
+    "productName": "Non-Steam Automation",
+    "directories": {
+      "output": "release"
+    },
     "linux": {
       "target": ["AppImage", "deb", "rpm"],
-      "category": "Utility"
+      "category": "Utility",
+      "icon": "build/icon.png"
+    },
+    "deb": {
+      "depends": ["gconf2", "gconf-service", "libnotify4", "libappindicator1", "libxtst6", "libnss3"]
+    },
+    "rpm": {
+      "summary": "Non-Steam Automation Tool",
+      "description": "Automation tool for managing non-steam games"
+    },
+    "appImage": {
+      "systemIntegration": "doNotAsk"
     }
   }
 }

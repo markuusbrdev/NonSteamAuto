@@ -14,14 +14,57 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel,
   
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
+    appId: initialData?.appId || '',
     exe: initialData?.exe || '',
     launchOptions: initialData?.launchOptions || '',
     proton: initialData?.proton || 'Nenhum'
   })
 
+  // Auto-Suggest States
+  const [suggestions, setSuggestions] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
+  // Debounce effect for Auto-Suggest
+  useEffect(() => {
+    if (step !== 1) return
+    const query = formData.name.trim()
+    if (query.length < 3) {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const results = await (window as any).api.searchSteamGame(query)
+        setSuggestions(results || [])
+        setShowSuggestions(true)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 500)
+
+    return () => clearTimeout(delayDebounceFn)
+  }, [formData.name, step])
+
   // Presets
   const [useMangoHud, setUseMangoHud] = useState(false)
   const [useGameMode, setUseGameMode] = useState(false)
+  const [enableAchievements, setEnableAchievements] = useState(true)
+
+  useEffect(() => {
+    if (initialData?.appId || formData.appId) {
+      const appIdToCheck = initialData?.appId || formData.appId;
+      (window as any).api.getAchievementsEnabled(appIdToCheck).then((enabled: boolean) => {
+        setEnableAchievements(enabled)
+      }).catch(console.error)
+    }
+  }, [initialData])
+
   
   const [arts, setArts] = useState<{ grid: string | null, gridHorizontal: string | null, hero: string | null, logo: string | null, icon: string | null }>({
     grid: initialData?.art?.grid || null, 
@@ -116,6 +159,18 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel,
       })
       
       if (result.success) {
+        try {
+          await (window as any).api.saveAchievementsEnabled(result.appId.toString(), enableAchievements)
+        } catch (e) {
+          console.error('Failed to save achievements enabled preference:', e)
+        }
+        if (formData.appId.trim()) {
+          try {
+            await (window as any).api.saveRealAppId(result.appId.toString(), formData.appId.trim())
+          } catch (e) {
+            console.error('Failed to save real AppID:', e)
+          }
+        }
         onComplete()
       } else {
         alert('Erro: ' + result.error)
@@ -173,19 +228,85 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel,
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1">Nome no Scraper</label>
-            <input 
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="adwaita-input w-full text-sm"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2 relative">
+              <label className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1">Nome da Steam</label>
+              <div className="relative">
+                <input 
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onFocus={() => {
+                    if (suggestions.length > 0) setShowSuggestions(true)
+                  }}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  className="adwaita-input w-full text-sm"
+                  placeholder="Nome exato do jogo..."
+                />
+                {isSearching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="animate-spin w-4 h-4 border-2 border-adwaita-blue border-t-transparent rounded-full"></div>
+                  </div>
+                )}
+              </div>
+
+              {/* Suggestions Dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-black/90 border border-white/10 rounded-lg shadow-2xl z-50 max-h-60 overflow-y-auto backdrop-blur-md">
+                  {suggestions.map((item: any) => (
+                    <div 
+                      key={item.id}
+                      onClick={() => {
+                        setFormData({ ...formData, name: item.name, appId: item.id.toString() })
+                        setShowSuggestions(false)
+                      }}
+                      className="flex items-center gap-3 p-3 hover:bg-white/10 cursor-pointer transition-colors border-b border-white/5 last:border-0"
+                    >
+                      {item.tiny_image ? (
+                        <img src={item.tiny_image} className="w-12 h-5 object-cover rounded" />
+                      ) : (
+                        <div className="w-12 h-5 bg-white/5 rounded"></div>
+                      )}
+                      <div>
+                        <p className="text-sm text-white font-medium">{item.name}</p>
+                        <p className="text-[10px] text-adwaita-text-secondary">AppID: {item.id}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1">AppID Oficial</label>
+              <input 
+                value={formData.appId}
+                onChange={(e) => setFormData({ ...formData, appId: e.target.value })}
+                className="adwaita-input w-full text-sm font-mono text-adwaita-blue"
+                placeholder="Ex: 259060"
+              />
+              <p className="text-[10px] text-adwaita-text-secondary px-1 mt-1 leading-tight">
+                O AppID é necessário para sincronizar conquistas oficiais.
+                <br />
+                <a href="#" onClick={(e) => { e.preventDefault(); (window as any).api.openExternalUrl('https://steamdb.info/') }} className="text-adwaita-blue hover:underline">
+                  Acha que o AppID está errado ou não encontrou? Verifique manualmente no SteamDB.
+                </a>
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-3">
-               <label className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1 block">Otimizações</label>
+               <label className="text-[10px] font-bold text-adwaita-text-secondary uppercase px-1 block">Configurações & Otimizações</label>
                <div className="space-y-2">
+                 <label className="flex items-center gap-3 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      checked={enableAchievements}
+                      onChange={(e) => setEnableAchievements(e.target.checked)}
+                      className="w-4 h-4 rounded border-white/10 bg-black/30 text-adwaita-blue focus:ring-0" 
+                    />
+                    <span className="text-sm text-adwaita-text-secondary group-hover:text-white transition-colors">Ativar Conquistas</span>
+                 </label>
                  <label className="flex items-center gap-3 cursor-pointer group">
                     <input 
                       type="checkbox" 

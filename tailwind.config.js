@@ -5,7 +5,15 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        'adwaita-card': 'var(--adwaita-card)',
+        'adwaita-bg': 'var(--adwaita-bg)',
+        'adwaita-blue': 'var(--adwaita-blue)',
+        'adwaita-text': 'var(--adwaita-text)',
+        'adwaita-text-secondary': 'var(--adwaita-text-secondary)'
+      }
+    },
   },
   plugins: [],
 }

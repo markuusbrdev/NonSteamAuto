@@ -5,6 +5,7 @@ import os from 'os'
 import CRC32 from 'crc-32'
 import * as VDF from 'steam-binary-vdf'
 import vdf from 'vdf-parser'
+import { getConfig } from './storeManager'
 
 async function getSteamPath() {
   const paths = [
@@ -24,8 +25,9 @@ export async function getNonSteamLibrary() {
   
   if (!existsSync(userDataPath)) return []
 
+  const config = await getConfig()
   const users = await fs.readdir(userDataPath)
-  const userId = users.find(u => u !== '0' && u !== 'anonymous') || users[0]
+  const userId = config.steam32Id || users.find(u => u !== '0' && u !== 'anonymous') || users[0]
   if (!userId) return []
 
   const shortcutsVdfPath = path.join(userDataPath, userId, 'config/shortcuts.vdf')
@@ -99,10 +101,13 @@ export async function updateManualArt(appId: number, artType: string, sourcePath
 }
 
 export async function removeNonSteamShortcut(appId: number) {
+  const { getConfig } = await import('./storeManager')
+  const config = await getConfig()
+  
   const steamPath = await getSteamPath()
   const userDataPath = path.join(steamPath, 'userdata')
   const users = await fs.readdir(userDataPath)
-  const userId = users.find(u => u !== '0' && u !== 'anonymous') || users[0]
+  const userId = config.steam32Id || users.find(u => u !== '0' && u !== 'anonymous') || users[0]
   const shortcutsVdfPath = path.join(userDataPath, userId, 'config/shortcuts.vdf')
   const gridPath = path.join(userDataPath, userId, 'config/grid')
 
@@ -112,15 +117,18 @@ export async function removeNonSteamShortcut(appId: number) {
   const readFn = (VDF as any).readVdf || (VDF as any).default?.readVdf
   const shortcutsData = readFn(buffer)
   
+  const targetAppId = Number(appId)
+  
   const cleanShortcuts: any = {}
   let index = 0
   if (shortcutsData.shortcuts) {
     Object.keys(shortcutsData.shortcuts).forEach(key => {
       const s = shortcutsData.shortcuts[key]
-      const shortcutString = `\x00${s.AppName || s.appname}\x00${s.Exe || s.exe}`
+      const cleanExe = (s.Exe || s.exe || '').replace(/"/g, '')
+      const shortcutString = `\x00${s.AppName || s.appname}\x00${cleanExe}`
       const sAppId = (CRC32.str(shortcutString) | 0x80000000) >>> 0
       
-      if (sAppId !== appId) {
+      if (sAppId !== targetAppId) {
         cleanShortcuts[index++] = s
       }
     })
@@ -129,6 +137,13 @@ export async function removeNonSteamShortcut(appId: number) {
   shortcutsData.shortcuts = cleanShortcuts
   const writeFn = (VDF as any).writeVdf || (VDF as any).default?.writeVdf
   const outputBuffer = writeFn(shortcutsData)
+  
+  // Kill Steam BEFORE writing to ensure it doesn't overwrite our changes
+  try {
+    const { execSync } = await import('child_process')
+    execSync('pkill -9 steam || flatpak kill com.valvesoftware.Steam || true')
+  } catch(e) {}
+  
   await fs.writeFile(shortcutsVdfPath, outputBuffer)
 
   // Remover artes

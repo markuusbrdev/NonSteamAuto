@@ -15,9 +15,11 @@ interface Game {
   }
 }
 
-export const LocalLibrary: React.FC<{ onEdit: (game: Game) => void, onShowAchievements?: (appId: number) => void, refreshTrigger?: number }> = ({ onEdit, onShowAchievements, refreshTrigger }) => {
+export const LocalLibrary: React.FC<{ onEdit: (game: Game) => void, onShowDetails?: (game: Game) => void, refreshTrigger?: number, onAddGame?: () => void }> = ({ onEdit, onShowDetails, refreshTrigger, onAddGame }) => {
   const [library, setLibrary] = useState<Game[]>([])
   const [loading, setLoading] = useState(true)
+  const [removingGame, setRemovingGame] = useState<Game | null>(null)
+  const [isRemoving, setIsRemoving] = useState(false)
 
   const load = async () => {
     if (!(window as any).api?.getLibrary) {
@@ -34,14 +36,23 @@ export const LocalLibrary: React.FC<{ onEdit: (game: Game) => void, onShowAchiev
     load()
   }, [refreshTrigger])
 
-  const handleRemove = async (appId: number, name: string) => {
-    if (!confirm(`Tem certeza que deseja remover "${name}" da Steam?`)) return
+  const confirmRemove = async () => {
+    if (!removingGame) return
+    setIsRemoving(true)
     
-    const result = await (window as any).api.removeShortcut(appId)
-    if (result.success) {
-      load()
-    } else {
-      alert('Erro ao remover: ' + result.error)
+    try {
+      const result = await (window as any).api.removeShortcut(removingGame.appId)
+      if (result.success) {
+        if ((window as any).api.restartSteam) {
+          await (window as any).api.restartSteam()
+        }
+        await load()
+      } else {
+        alert('Erro ao remover: ' + result.error)
+      }
+    } finally {
+      setIsRemoving(false)
+      setRemovingGame(null)
     }
   }
 
@@ -61,15 +72,28 @@ export const LocalLibrary: React.FC<{ onEdit: (game: Game) => void, onShowAchiev
           <h2 className="text-2xl font-bold tracking-tight">Jogos Non-Steam</h2>
           <p className="text-adwaita-text-secondary text-sm">Gerencie seus jogos externos e customizações</p>
         </div>
-        <button 
-          onClick={load}
-          className="p-2 hover:bg-white/5 rounded-lg transition-colors text-adwaita-text-secondary hover:text-white"
-          title="Recarregar"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2">
+          {onAddGame && (
+            <button 
+              onClick={onAddGame}
+              className="flex items-center gap-2 bg-[#26a269] text-white font-bold px-4 py-2 rounded-lg hover:bg-[#33d17a] transition-colors shadow-[0_0_15px_rgba(38,162,105,0.2)] text-sm mr-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
+              </svg>
+              Adicionar Game Non-Steam
+            </button>
+          )}
+          <button 
+            onClick={load}
+            className="p-2 hover:bg-white/5 rounded-lg transition-colors text-adwaita-text-secondary hover:text-white"
+            title="Recarregar"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {library.length === 0 ? (
@@ -84,7 +108,11 @@ export const LocalLibrary: React.FC<{ onEdit: (game: Game) => void, onShowAchiev
       ) : (
         <div className="grid gap-4">
           {library.map((game) => (
-            <div key={game.appId} className="adwaita-card p-4 flex items-center gap-4 group hover:bg-white/[0.02] transition-colors">
+            <div 
+              key={game.appId} 
+              className="adwaita-card p-4 flex items-center gap-4 group hover:bg-white/[0.05] transition-colors cursor-pointer relative"
+              onClick={() => onShowDetails && onShowDetails(game)}
+            >
               <div className="w-16 h-24 bg-black/40 rounded-lg overflow-hidden flex-shrink-0 shadow-sm border border-white/5">
                 {game.art.grid ? (
                   <img src={game.art.grid} className="w-full h-full object-cover" />
@@ -104,8 +132,11 @@ export const LocalLibrary: React.FC<{ onEdit: (game: Game) => void, onShowAchiev
 
               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button 
-                  onClick={() => onEdit(game)}
-                  className="p-2 bg-white/10 hover:bg-white/20 text-white !rounded-lg transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEdit(game)
+                  }}
+                  className="p-2 bg-white/10 hover:bg-white/20 text-white !rounded-lg transition-colors z-10"
                   title="Editar Jogo"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,17 +144,11 @@ export const LocalLibrary: React.FC<{ onEdit: (game: Game) => void, onShowAchiev
                   </svg>
                 </button>
                 <button 
-                  onClick={() => onShowAchievements && onShowAchievements(game.appId)}
-                  className="p-2 bg-adwaita-blue/10 hover:bg-adwaita-blue/20 text-adwaita-blue !rounded-lg transition-colors"
-                  title="Ver Conquistas (Offline)"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                  </svg>
-                </button>
-                <button 
-                  onClick={() => handleRemove(game.appId, game.name)}
-                  className="adwaita-btn-destructive p-2 !rounded-lg"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setRemovingGame(game)
+                  }}
+                  className="adwaita-btn-destructive p-2 !rounded-lg z-10"
                   title="Remover da Steam"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,6 +158,44 @@ export const LocalLibrary: React.FC<{ onEdit: (game: Game) => void, onShowAchiev
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Remoção */}
+      {removingGame && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-adwaita-card border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4 text-red-500">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </div>
+            <h3 className="text-xl font-bold mb-2">Remover "{removingGame.name}"?</h3>
+            <p className="text-adwaita-text-secondary mb-6 text-sm">
+              Para remover este jogo completamente e não deixar vestígios na sua biblioteca, <strong className="text-white">a Steam será reiniciada automaticamente</strong>. Deseja prosseguir?
+            </p>
+            <div className="flex gap-3 w-full">
+              <button 
+                onClick={() => setRemovingGame(null)}
+                disabled={isRemoving}
+                className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmRemove}
+                disabled={isRemoving}
+                className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isRemoving ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Removendo...
+                  </>
+                ) : (
+                  'Sim, Remover'
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

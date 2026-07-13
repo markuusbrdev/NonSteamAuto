@@ -1,13 +1,15 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol, net } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, protocol, net, shell } from 'electron'
+import axios from 'axios'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { injectNonSteamShortcut } from './nonSteamInjector'
 import { getSavedApiKey, saveApiKey, getConfig, saveConfigData } from './storeManager'
 import { getNonSteamLibrary, updateManualArt, getInstalledProtons, removeNonSteamShortcut } from './libraryManager'
-import { launchPatchedSteam } from './steamPatcher'
 import { getHybridAchievements } from './goldbergParser'
 import { SGDBService } from './sgdbService'
-import { checkGlumaStatus, downloadAndExtractGreenLuma } from './glumaFetcher'
+import { validateSgdbKey, validateSteamKey } from './validationService'
+import { getLocalSteamUsers } from './steamUserManager'
+import { autoScanGoldberg } from './goldbergScanner'
 import fs from 'fs/promises'
 import os from 'os'
 import { exec } from 'node:child_process'
@@ -84,17 +86,56 @@ app.whenReady().then(() => {
   ipcMain.handle('get-config', () => getConfig())
   ipcMain.handle('save-config-data', async (_event, data) => await saveConfigData(data.key, data.value))
 
-  ipcMain.handle('get-protons', () => getInstalledProtons())
-  
-  ipcMain.handle('launch-patched-steam', async (_event, greenLumaPath) => await launchPatchedSteam(greenLumaPath))
-  ipcMain.handle('get-hybrid-achievements', async (_event, data) => await getHybridAchievements(data.appId, data.apiKey))
+  ipcMain.handle('validate-sgdb-key', async (_event, apiKey) => await validateSgdbKey(apiKey))
+  ipcMain.handle('validate-steam-key', async (_event, apiKey) => await validateSteamKey(apiKey))
 
-  ipcMain.handle('check-gluma-status', async () => {
-    return await checkGlumaStatus()
+  ipcMain.handle('get-local-steam-users', () => getLocalSteamUsers())
+
+  ipcMain.handle('get-protons', () => getInstalledProtons())
+
+  ipcMain.handle('get-hybrid-achievements', async (_event, data) => await getHybridAchievements(data.appId, data.apiKey, data.exePath, data.achievementsJsonPath))
+  
+  ipcMain.handle('auto-scan-goldberg', async (_event, appId) => await autoScanGoldberg(appId))
+  
+  ipcMain.handle('manual-select-goldberg', async (_event, appId) => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'Achievements JSON', extensions: ['json'] }]
+    })
+    if (!result.canceled && result.filePaths.length > 0) {
+      const selected = result.filePaths[0]
+      if (selected.toLowerCase().endsWith('achievements.json')) {
+        const { saveGoldbergCache } = await import('./storeManager')
+        await saveGoldbergCache(appId, selected)
+        return selected
+      }
+    }
+    return null
   })
 
-  ipcMain.handle('download-gluma', async () => {
-    await downloadAndExtractGreenLuma()
+  ipcMain.handle('clear-goldberg-cache', async (_event, appId) => {
+    const { clearGoldbergCache } = await import('./storeManager')
+    return await clearGoldbergCache(appId)
+  })
+
+  ipcMain.handle('get-real-app-id', async (_event, appId) => {
+    const { getRealAppIdCache } = await import('./storeManager')
+    return await getRealAppIdCache(appId)
+  })
+
+  ipcMain.handle('save-real-app-id', async (_event, data) => {
+    const { saveRealAppIdCache } = await import('./storeManager')
+    await saveRealAppIdCache(data.appId, data.realAppId)
+    return true
+  })
+  ipcMain.handle('get-achievements-enabled', async (_event, appId) => {
+    const { getAchievementsEnabledCache } = await import('./storeManager')
+    return await getAchievementsEnabledCache(appId)
+  })
+
+  ipcMain.handle('save-achievements-enabled', async (_event, data) => {
+    const { saveAchievementsEnabledCache } = await import('./storeManager')
+    await saveAchievementsEnabledCache(data.appId, data.enabled)
     return true
   })
 
@@ -112,6 +153,24 @@ app.whenReady().then(() => {
     const game = await sgdb.searchGame(gameName)
     if (!game) return null
     return await sgdb.getAssets(game.id)
+  })
+
+  ipcMain.handle('search-steam-game', async (_event, query: string) => {
+    if (!query || query.trim() === '') return []
+    try {
+      const response = await axios.get(`https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(query)}&l=portuguese&cc=BR`)
+      if (response.data && response.data.items) {
+        return response.data.items.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          tiny_image: item.tiny_image
+        }))
+      }
+      return []
+    } catch (e) {
+      console.error('Failed to search Steam games:', e)
+      return []
+    }
   })
 
   // Nova função para buscar lista de alternativas de uma arte
@@ -160,15 +219,23 @@ app.whenReady().then(() => {
 
   ipcMain.handle('restart-steam', () => {
     return new Promise((resolve) => {
-      // Tenta fechar a Steam e abrir novamente
-      exec('pkill -9 steam && sleep 1 && steam &', (error) => {
-        if (error) {
-          // Se falhou o pkill (steam não tava aberta), tenta só abrir
-          exec('steam &')
-        }
-        resolve({ success: true })
+      exec('pkill -9 steam || flatpak kill com.valvesoftware.Steam || true', () => {
+        setTimeout(async () => {
+          const { spawn } = await import('child_process')
+          // Tenta iniciar a steam nativa e flatpak em background
+          const child = spawn('sh', ['-c', 'steam || flatpak run com.valvesoftware.Steam'], {
+            detached: true,
+            stdio: 'ignore'
+          })
+          child.unref()
+          resolve({ success: true })
+        }, 1000)
       })
     })
+  })
+
+  ipcMain.on('open-external-url', (_event, url) => {
+    shell.openExternal(url)
   })
 
   createWindow()

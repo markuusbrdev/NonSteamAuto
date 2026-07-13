@@ -1,35 +1,58 @@
 import { useState, useEffect } from 'react'
 import { LocalLibrary } from './components/LocalLibrary'
 import { InjectionWizard } from './components/InjectionWizard'
-import { AchievementsBoard } from './components/AchievementsBoard'
+
 import { SettingsPanel } from './components/SettingsPanel'
-import { GlumaStatus } from './components/GlumaStatus'
+import { GameDetailsDrawer } from './components/GameDetailsDrawer'
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'injector' | 'library' | 'settings'>('injector')
+  const [activeTab, setActiveTab] = useState<'library' | 'settings'>('library')
   const [apiKey, setApiKey] = useState('')
   const [showSuccess, setShowSuccess] = useState(false)
   const [editGame, setEditGame] = useState<any>(null)
+  const [isInjectorModalOpen, setIsInjectorModalOpen] = useState(false)
   const [libraryRefreshTrigger, setLibraryRefreshTrigger] = useState(0)
 
   const [steamApiKey, setSteamApiKey] = useState('')
-  const [greenLumaPath, setGreenLumaPath] = useState('')
-  const [isLaunchingSteam, setIsLaunchingSteam] = useState(false)
+
   const [isRestartingSteam, setIsRestartingSteam] = useState(false)
-  const [showAchievementsFor, setShowAchievementsFor] = useState<string | null>(null)
+  const [showAchievementsFor, setShowAchievementsFor] = useState<any | null>(null)
+
+  const [sgdbStatus, setSgdbStatus] = useState<'checking' | 'ok' | 'error'>('checking')
+  const [steamStatus, setSteamStatus] = useState<'checking' | 'ok' | 'error'>('checking')
+  const [steam32Id, setSteam32Id] = useState('')
 
   useEffect(() => {
     const loadConfig = async () => {
       if ((window as any).api?.getConfig) {
         const config = await (window as any).api.getConfig()
+        
+        if (config.steam32Id) {
+          setSteam32Id(config.steam32Id)
+        }
+        
         if (config.sgdbApiKey) {
           setApiKey(config.sgdbApiKey)
+          if ((window as any).api?.validateSgdbKey) {
+            const res = await (window as any).api.validateSgdbKey(config.sgdbApiKey)
+            setSgdbStatus(res.valid ? 'ok' : 'error')
+          } else {
+            setSgdbStatus('ok') // Fallback if no validation function
+          }
+        } else {
+          setSgdbStatus('error')
         }
+        
         if (config.steamApiKey) {
           setSteamApiKey(config.steamApiKey)
-        }
-        if (config.greenLumaPath) {
-          setGreenLumaPath(config.greenLumaPath)
+          if ((window as any).api?.validateSteamKey) {
+            const res = await (window as any).api.validateSteamKey(config.steamApiKey)
+            setSteamStatus(res.valid ? 'ok' : 'error')
+          } else {
+            setSteamStatus('ok')
+          }
+        } else {
+          setSteamStatus('error')
         }
       }
     }
@@ -55,18 +78,18 @@ function App() {
           
           <button 
             style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-            onClick={async () => {
+            onClick={() => {
               setIsRestartingSteam(true)
-              await (window as any).api.restartSteam()
+              ;(window as any).api.restartSteam()
               setTimeout(() => {
                 setIsRestartingSteam(false)
               }, 4000)
             }}
             disabled={isRestartingSteam}
-            className={`ml-2 flex items-center gap-1.5 px-2.5 py-1.5 ${isRestartingSteam ? 'bg-adwaita-blue/5 text-adwaita-blue/50' : 'bg-adwaita-blue/10 hover:bg-adwaita-blue/20 text-adwaita-blue'} rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider group`}
+            className={`ml-2 flex items-center gap-1 px-2 py-1 ${isRestartingSteam ? 'bg-adwaita-blue/5 text-adwaita-blue/50' : 'bg-adwaita-blue/10 hover:bg-adwaita-blue/20 text-adwaita-blue'} rounded-lg transition-all text-[9px] font-bold uppercase tracking-wider group`}
             title="Reiniciar Steam para aplicar mudanças"
           >
-            <svg className={`w-3.5 h-3.5 ${isRestartingSteam ? 'animate-spin' : 'group-active:rotate-180 transition-transform duration-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-3 h-3 ${isRestartingSteam ? 'animate-spin' : 'group-active:rotate-180 transition-transform duration-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             {isRestartingSteam ? 'Reiniciando...' : 'Reiniciar Steam'}
@@ -77,12 +100,6 @@ function App() {
           className="absolute left-1/2 -translate-x-1/2 flex bg-black/20 p-1 rounded-full border border-white/5"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
-          <button 
-            onClick={() => { setActiveTab('injector'); setEditGame(null) }}
-            className={`px-6 py-1.5 rounded-full font-semibold text-xs transition-all ${activeTab === 'injector' && !editGame ? 'bg-white/15 text-white shadow-lg border border-white/10' : 'text-adwaita-text-secondary hover:text-white border border-transparent'}`}
-          >
-            Injetor
-          </button>
           <button 
             onClick={() => setActiveTab('library')}
             className={`px-6 py-1.5 rounded-full font-semibold text-xs transition-all ${activeTab === 'library' ? 'bg-white/15 text-white shadow-lg border border-white/10' : 'text-adwaita-text-secondary hover:text-white border border-transparent'}`}
@@ -97,46 +114,18 @@ function App() {
           </button>
         </nav>
 
-        <div className="flex items-center gap-4">
-          <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-            <GlumaStatus />
+        <div className="flex items-center gap-2">
+          {/* API Status Indicators */}
+          <div className="hidden md:flex items-center gap-2 mr-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border transition-colors ${sgdbStatus === 'ok' ? 'bg-green-500/10 text-green-400 border-green-500/20' : sgdbStatus === 'checking' ? 'bg-white/5 text-white/50 border-white/10' : 'bg-red-500/10 text-red-400 border-red-500/20'}`} title="Status da API SteamGridDB">
+              <div className={`w-1.5 h-1.5 rounded-full ${sgdbStatus === 'ok' ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]' : sgdbStatus === 'checking' ? 'bg-white/50 animate-pulse' : 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.5)]'}`}></div>
+              GridDB
+            </div>
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border transition-colors ${steamStatus === 'ok' ? 'bg-green-500/10 text-green-400 border-green-500/20' : steamStatus === 'checking' ? 'bg-white/5 text-white/50 border-white/10' : 'bg-red-500/10 text-red-400 border-red-500/20'}`} title="Status da API de Conquistas Steam">
+              <div className={`w-1.5 h-1.5 rounded-full ${steamStatus === 'ok' ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]' : steamStatus === 'checking' ? 'bg-white/50 animate-pulse' : 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.5)]'}`}></div>
+              Conquistas
+            </div>
           </div>
-
-          {/* API Status Indicator */}
-          <button
-            onClick={() => setActiveTab('settings')}
-            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-[10px] font-bold uppercase tracking-wider ${apiKey ? 'bg-adwaita-green/10 text-adwaita-green hover:bg-adwaita-green/20' : 'bg-red-500/10 text-red-500 hover:bg-red-500/20'}`}
-            title="Ir para Configurações"
-          >
-            <div className={`w-2 h-2 rounded-full ${apiKey ? 'bg-adwaita-green shadow-[0_0_8px_rgba(46,204,113,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(231,76,60,0.6)]'}`}></div>
-            {apiKey ? 'API GridDB OK' : 'SEM API GridDB'}
-          </button>
-
-          <button 
-            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-            onClick={async () => {
-              if (!greenLumaPath) {
-                alert('Configure o caminho do GreenLuma nas Configurações primeiro!')
-                setActiveTab('settings')
-                return
-              }
-              setIsLaunchingSteam(true)
-              const res = await (window as any).api.launchPatchedSteam(greenLumaPath)
-              setIsLaunchingSteam(false)
-              if (!res.success) {
-                alert('Erro ao iniciar Steam com GreenLuma: ' + res.error)
-              }
-            }}
-            disabled={isLaunchingSteam}
-            className="flex items-center gap-2 px-3 py-1.5 mr-2 bg-adwaita-green/10 hover:bg-adwaita-green/20 text-adwaita-green rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider"
-            title="Lançar Steam com LD_PRELOAD GreenLuma"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-            {isLaunchingSteam ? 'Iniciando...' : 'Launch GreenLuma'}
-          </button>
-
-
 
           {/* Window Controls */}
           <div className="flex items-center gap-1 border-l border-white/10 pl-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
@@ -185,68 +174,25 @@ function App() {
             </div>
           </div>
         )}
-        {activeTab === 'injector' && (
-          <div className="animate-fade-in space-y-10">
-            <div className="text-center">
-              <h2 className="text-3xl font-extrabold tracking-tight mb-2">Automador Non-Steam</h2>
-              <p className="text-adwaita-text-secondary text-sm">Adicione jogos com artes e compatibilidade proton</p>
-            </div>
-
-            {showSuccess ? (
-              <div className="adwaita-card p-12 text-center animate-bounce-in bg-adwaita-green/5 border-adwaita-green/20">
-                <div className="w-16 h-16 bg-adwaita-green rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-adwaita-green/20">
-                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                   </svg>
-                </div>
-                <h3 className="text-xl font-bold mb-1">{editGame ? 'Jogo Atualizado com Sucesso' : 'Jogo Injetado com Sucesso'}</h3>
-                <p className="text-adwaita-text-secondary text-sm mb-8">Reinicie a Steam para aplicar as alterações.</p>
-                <div className="flex gap-3 justify-center">
-                  <button 
-                    onClick={() => setShowSuccess(false)}
-                    className="adwaita-btn-secondary"
-                  >
-                    Adicionar Outro
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('library')}
-                    className="adwaita-btn-primary"
-                  >
-                    Ver Biblioteca
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <InjectionWizard 
-                apiKey={apiKey} 
-                initialData={editGame}
-                onComplete={() => {
-                  setShowSuccess(true)
-                  setEditGame(null)
-                }}
-                onCancel={() => {
-                  if (editGame) setActiveTab('library')
-                  setEditGame(null)
-                }}
-              />
-            )}
-          </div>
-        )}
         
         {activeTab === 'library' && (
           <>
             <LocalLibrary 
               refreshTrigger={libraryRefreshTrigger}
+              onAddGame={() => setIsInjectorModalOpen(true)}
               onEdit={(game) => {
                 setEditGame(game)
               }}
-              onShowAchievements={(appId) => {
-                setShowAchievementsFor(appId.toString())
+              onShowDetails={async (game) => {
+                const enabled = await (window as any).api.getAchievementsEnabled(game.appId.toString())
+                if (enabled) {
+                  setShowAchievementsFor(game)
+                }
               }}
             />
             {showAchievementsFor && (
-              <AchievementsBoard 
-                appId={showAchievementsFor} 
+              <GameDetailsDrawer 
+                game={showAchievementsFor} 
                 steamApiKey={steamApiKey} 
                 onClose={() => setShowAchievementsFor(null)} 
               />
@@ -285,11 +231,27 @@ function App() {
           <SettingsPanel 
             initialSteamApiKey={steamApiKey}
             initialSgdbApiKey={apiKey}
-            initialGreenLumaPath={greenLumaPath}
-            onConfigChange={(key, value) => {
-              if (key === 'steamApiKey') setSteamApiKey(value)
-              if (key === 'sgdbApiKey') setApiKey(value)
-              if (key === 'greenLumaPath') setGreenLumaPath(value)
+            initialSteam32Id={steam32Id}
+            onConfigChange={async (key, value) => {
+              if (key === 'steamApiKey') {
+                setSteamApiKey(value)
+                setSteamStatus('checking')
+                if ((window as any).api?.validateSteamKey) {
+                  const res = await (window as any).api.validateSteamKey(value)
+                  setSteamStatus(res.valid ? 'ok' : 'error')
+                }
+              }
+              if (key === 'sgdbApiKey') {
+                setApiKey(value)
+                setSgdbStatus('checking')
+                if ((window as any).api?.validateSgdbKey) {
+                  const res = await (window as any).api.validateSgdbKey(value)
+                  setSgdbStatus(res.valid ? 'ok' : 'error')
+                }
+              }
+              if (key === 'steam32Id') {
+                setSteam32Id(value)
+              }
             }}
           />
         )}
@@ -300,6 +262,52 @@ function App() {
            Libadwaita Concept • Linux Desktop
          </p>
       </footer>
+
+      {/* Modal Injetor */}
+      {(isInjectorModalOpen || editGame) && (
+        <div className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto pt-24 animate-fade-in">
+          <div className="relative w-full max-w-2xl my-auto">
+            {showSuccess ? (
+              <div className="adwaita-card p-12 text-center animate-bounce-in bg-adwaita-green/5 border-adwaita-green/20 shadow-2xl">
+                <div className="w-16 h-16 bg-adwaita-green rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-adwaita-green/20">
+                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                   </svg>
+                </div>
+                <h3 className="text-xl font-bold mb-1">{editGame ? 'Jogo Atualizado com Sucesso' : 'Jogo Injetado com Sucesso'}</h3>
+                <p className="text-adwaita-text-secondary text-sm mb-8">Reinicie a Steam para aplicar as alterações.</p>
+                <div className="flex gap-3 justify-center">
+                  <button 
+                    onClick={() => {
+                      setShowSuccess(false)
+                      setIsInjectorModalOpen(false)
+                      setEditGame(null)
+                      setLibraryRefreshTrigger(prev => prev + 1)
+                    }}
+                    className="adwaita-btn-primary"
+                  >
+                    Fechar e Ver Biblioteca
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <InjectionWizard 
+                apiKey={apiKey} 
+                initialData={editGame}
+                onComplete={() => {
+                  setShowSuccess(true)
+                }}
+                onCancel={() => {
+                  setIsInjectorModalOpen(false)
+                  setEditGame(null)
+                }}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+
     </div>
   )
 }

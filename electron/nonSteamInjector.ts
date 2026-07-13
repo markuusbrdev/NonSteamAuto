@@ -1,4 +1,5 @@
 import fs from 'fs/promises'
+import { getConfig } from './storeManager'
 import { existsSync } from 'fs'
 import path from 'path'
 import os from 'os'
@@ -76,9 +77,12 @@ export async function injectNonSteamShortcut(params: {
   const steamPath = await getSteamPath()
   const userDataPath = path.join(steamPath, 'userdata')
   
-  const users = await fs.readdir(userDataPath)
-  const userId = users.find(u => u !== '0' && u !== 'anonymous') || users[0]
-  if (!userId) throw new Error('ID do usuário não encontrado.')
+  const config = await getConfig()
+  const userId = config.steam32Id
+  
+  if (!userId) {
+    throw new Error('Nenhum Perfil da Steam foi selecionado nas Configurações.')
+  }
 
   const shortcutsVdfPath = path.join(userDataPath, userId, 'config/shortcuts.vdf')
   const gridPath = path.join(userDataPath, userId, 'config/grid')
