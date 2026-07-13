@@ -28,7 +28,7 @@ function App() {
             </svg>
           </div>
           <div className="hidden sm:block">
-            <h1 className="text-sm font-bold tracking-tight">STLinuxTools</h1>
+            <h1 className="text-sm font-bold tracking-tight">Non-Steam Automation</h1>
           </div>
         </div>
 

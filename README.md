@@ -1,4 +1,4 @@
-# 🎮 STLinuxTools
+# 🎮 Non-Steam Automation
 
 ## ❌ ESSE PROJETO NÃO RECEBERÁ NOVOS UPDATES ❌
 
@@ -14,7 +14,7 @@
 [![Electron](https://img.shields.io/badge/Electron-47848F?style=flat-square&logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
-**STLinuxTools** é uma ferramenta poderosa e elegante projetada para gamers no Linux que desejam integrar perfeitamente seus jogos de fora da Steam (Epic Games, GOG, Emuladores, etc.) à biblioteca oficial da Steam, com automação completa de arte e configurações.
+**Non-Steam Automation** é uma ferramenta poderosa e elegante projetada para gamers no Linux que desejam integrar perfeitamente seus jogos de fora da Steam (Epic Games, GOG, Emuladores, etc.) à biblioteca oficial da Steam, com automação completa de arte e configurações.
 
 ---
 
@@ -31,7 +31,7 @@
 
 ## 🛠️ Como Funciona?
 
-O STLinuxTools interage diretamente com o arquivo `shortcuts.vdf` da sua conta Steam. Ele automatiza o processo de:
+O Non-Steam Automation interage diretamente com o arquivo `shortcuts.vdf` da sua conta Steam. Ele automatiza o processo de:
 1. Localizar sua instalação da Steam e o perfil de usuário.
 2. Gerar as entradas necessárias no banco de dados da Steam.
 3. Baixar e organizar os arquivos de arte nas pastas corretas (`userdata/<ID>/config/grid`).
@@ -49,8 +49,8 @@ O STLinuxTools interage diretamente com o arquivo `shortcuts.vdf` da sua conta S
 ### Rodando Localmente
 1. Clone o repositório:
    ```bash
-   git clone https://github.com/markuusbrdev/STLinuxTools.git
-   cd STLinuxTools
+   git clone https://github.com/markuusbrdev/Non-Steam-Automation.git
+   cd Non-Steam-Automation
    ```
 2. Instale as dependências:
    ```bash

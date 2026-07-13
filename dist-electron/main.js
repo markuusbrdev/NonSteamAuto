@@ -22702,7 +22702,7 @@ function createWindow() {
       contextIsolation: true,
       sandbox: false
     },
-    title: "STLinuxTools",
+    title: "Non-Steam Automation",
     backgroundColor: "#1b2838"
   });
   if (VITE_DEV_SERVER_URL) {
@@ -22732,7 +22732,7 @@ app.whenReady().then(() => {
     return await sgdb.getAssets(game.id);
   });
   ipcMain.handle("download-temp-art", async (_event, { url }) => {
-    const tempDir = path$2.join(os.tmpdir(), "stlinuxtools-temp");
+    const tempDir = path$2.join(os.tmpdir(), "non-steam-automation-temp");
     await fs$1.mkdir(tempDir, { recursive: true });
     const fileName = `temp_${Date.now()}.png`;
     const dest = path$2.join(tempDir, fileName);

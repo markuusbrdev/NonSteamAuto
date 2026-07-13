@@ -33,7 +33,7 @@ function createWindow() {
       contextIsolation: true,
       sandbox: false
     },
-    title: 'STLinuxTools',
+    title: 'Non-Steam Automation',
     backgroundColor: '#1b2838'
   })
 
@@ -74,7 +74,7 @@ app.whenReady().then(() => {
 
   // Função para baixar imagem temporária para o preview (se o usuário trocar)
   ipcMain.handle('download-temp-art', async (_event, { url }) => {
-    const tempDir = path.join(os.tmpdir(), 'stlinuxtools-temp')
+    const tempDir = path.join(os.tmpdir(), 'non-steam-automation-temp')
     await fs.mkdir(tempDir, { recursive: true })
     const fileName = `temp_${Date.now()}.png`
     const dest = path.join(tempDir, fileName)
