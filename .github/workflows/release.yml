@@ -30,4 +30,4 @@ jobs:
       - name: Build and Publish Electron
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --linux --publish always
+        run: npx electron-builder --linux rpm deb pacman AppImage --publish always

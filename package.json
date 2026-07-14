@@ -59,10 +59,8 @@
     },
     "linux": {
       "target": [
-        "rpm",
-        "deb",
-        "pacman",
-        "AppImage"
+        "AppImage",
+        "tar.gz"
       ],
       "category": "Utility",
       "icon": "build/icon.png"
