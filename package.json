@@ -50,14 +50,19 @@
   "build": {
     "appId": "com.marcus.nonsteamauto",
     "productName": "NonSteamAutomation",
+    "publish": [
+      "github"
+    ],
     "directories": {
       "output": "release",
       "buildResources": "build"
     },
     "linux": {
       "target": [
-        "AppImage",
-        "tar.gz"
+        "rpm",
+        "deb",
+        "pacman",
+        "AppImage"
       ],
       "category": "Utility",
       "icon": "build/icon.png"

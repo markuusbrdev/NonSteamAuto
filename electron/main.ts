@@ -258,11 +258,12 @@ app.whenReady().then(() => {
 
   ipcMain.handle('restart-steam', () => {
     return new Promise((resolve) => {
-      exec('pkill -9 steam || flatpak kill com.valvesoftware.Steam || true', () => {
+      // Use pkill -x to match exactly 'steam' so it doesn't kill 'non-steam-automation'
+      exec('pkill -9 -x steam || killall -9 steam || flatpak kill com.valvesoftware.Steam || true', () => {
         setTimeout(async () => {
           const { spawn } = await import('child_process')
           // Tenta iniciar a steam nativa e flatpak em background
-          const child = spawn('sh', ['-c', 'steam || flatpak run com.valvesoftware.Steam'], {
+          const child = spawn('sh', ['-c', 'steam || flatpak run com.valvesoftware.Steam &'], {
             detached: true,
             stdio: 'ignore'
           })
