@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('api', {
   setDesktopName: (name: string) => ipcRenderer.invoke('set-desktop-name', name),
   getConfig: () => ipcRenderer.invoke('get-config'),
   saveConfigData: (key: string, value: any) => ipcRenderer.invoke('save-config-data', { key, value }),
+  getRunInBackground: () => ipcRenderer.invoke('get-run-in-background'),
+  saveRunInBackground: (enabled: boolean) => ipcRenderer.invoke('save-run-in-background', enabled),
   validateSgdbKey: (apiKey: string) => ipcRenderer.invoke('validate-sgdb-key', apiKey),
   validateSteamKey: (apiKey: string) => ipcRenderer.invoke('validate-steam-key', apiKey),
   getLocalSteamUsers: () => ipcRenderer.invoke('get-local-steam-users'),

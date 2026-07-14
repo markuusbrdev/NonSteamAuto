@@ -5,8 +5,10 @@ interface ConfigSchema {
   sgdbApiKey: string
   greenLumaPath: string
   steam32Id?: string
+  runInBackground: boolean
   goldbergCache: Record<string, string>
   realAppIdCache: Record<string, string>
+  achievementsEnabledCache: Record<string, boolean>
 }
 
 const store = new Store<ConfigSchema>({
@@ -15,8 +17,10 @@ const store = new Store<ConfigSchema>({
     sgdbApiKey: '',
     greenLumaPath: '',
     steam32Id: '',
+    runInBackground: true,
     goldbergCache: {},
-    realAppIdCache: {}
+    realAppIdCache: {},
+    achievementsEnabledCache: {}
   }
 })
 
@@ -69,13 +73,25 @@ export async function saveRealAppIdCache(appId: string, realAppId: string): Prom
 }
 
 export async function getAchievementsEnabledCache(appId: string): Promise<boolean> {
-  const cache = store.get('achievementsEnabledCache') || {}
+  const cache: Record<string, boolean> = store.get('achievementsEnabledCache') || {}
   // Default to true if not set
   return cache[appId] !== undefined ? cache[appId] : true
 }
 
 export async function saveAchievementsEnabledCache(appId: string, enabled: boolean): Promise<void> {
-  const cache = store.get('achievementsEnabledCache') || {}
+  const cache: Record<string, boolean> = store.get('achievementsEnabledCache') || {}
   cache[appId] = enabled
   store.set('achievementsEnabledCache', cache)
+}
+
+export async function getRunInBackground(): Promise<boolean> {
+  return store.get('runInBackground')
+}
+
+export function getRunInBackgroundSync(): boolean {
+  return store.get('runInBackground') as boolean
+}
+
+export async function saveRunInBackground(enabled: boolean): Promise<void> {
+  store.set('runInBackground', enabled)
 }

@@ -2,16 +2,23 @@
   "name": "non-steam-automation",
   "private": true,
   "version": "0.0.0",
+  "description": "Automation tool for managing non-steam games",
+  "author": {
+    "name": "Marcus",
+    "email": "marcus@example.com"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
     "pack": "vite build && electron-builder --dir",
     "build": "tsc && vite build && electron-builder --linux",
+    "build:linux": "vite build && electron-builder --linux",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
   "dependencies": {
     "axios": "^1.18.1",
+    "chokidar": "^5.0.0",
     "crc-32": "^1.2.2",
     "electron-store": "^11.0.2",
     "react": "^18.2.0",
@@ -42,24 +49,28 @@
   "main": "dist-electron/main.js",
   "build": {
     "appId": "com.marcus.nonsteamauto",
-    "productName": "Non-Steam Automation",
+    "productName": "NonSteamAutomation",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "linux": {
-      "target": ["AppImage", "deb", "rpm"],
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ],
       "category": "Utility",
       "icon": "build/icon.png"
     },
-    "deb": {
-      "depends": ["gconf2", "gconf-service", "libnotify4", "libappindicator1", "libxtst6", "libnss3"]
-    },
     "rpm": {
-      "summary": "Non-Steam Automation Tool",
-      "description": "Automation tool for managing non-steam games"
-    },
-    "appImage": {
-      "systemIntegration": "doNotAsk"
+      "synopsis": "Non-Steam Automation Tool",
+      "description": "Automation tool for managing non-steam games",
+      "fpm": [
+        "--rpm-rpmbuild-define", "_build_id_links none",
+        "--rpm-rpmbuild-define", "__spec_install_pre %{nil}",
+        "--rpm-rpmbuild-define", "__os_install_post %{nil}",
+        "--rpm-rpmbuild-define", "debug_package %{nil}"
+      ]
     }
   }
 }

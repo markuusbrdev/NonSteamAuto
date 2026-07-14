@@ -1,15 +1,16 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol, net, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, Tray, Menu } from 'electron'
 import axios from 'axios'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { injectNonSteamShortcut } from './nonSteamInjector'
-import { getSavedApiKey, saveApiKey, getConfig, saveConfigData } from './storeManager'
+import { getSavedApiKey, saveApiKey, getConfig, saveConfigData, getRunInBackgroundSync } from './storeManager'
 import { getNonSteamLibrary, updateManualArt, getInstalledProtons, removeNonSteamShortcut } from './libraryManager'
 import { getHybridAchievements } from './goldbergParser'
 import { SGDBService } from './sgdbService'
 import { validateSgdbKey, validateSteamKey } from './validationService'
 import { getLocalSteamUsers } from './steamUserManager'
 import { autoScanGoldberg } from './goldbergScanner'
+import { initGlobalWatchers } from './achievementWatcher'
 import fs from 'fs/promises'
 import os from 'os'
 import { exec } from 'node:child_process'
@@ -18,7 +19,8 @@ import { exec } from 'node:child_process'
 app.setName('NonSteamAutomation')
 if (process.platform === 'linux') {
   // @ts-ignore
-  app.setDesktopName('NonSteamAutomation.desktop')
+  app.setDesktopName('nonsteamautomation.desktop')
+  app.setAppUserModelId('com.marcus.nonsteamauto')
   // Suprime o spam de erros 'GetVSyncParametersIfAvailable' no console do Linux
   app.commandLine.appendSwitch('disable-gpu-vsync')
 }
@@ -30,7 +32,9 @@ export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
-let win: BrowserWindow | null
+let win: BrowserWindow | null = null
+let tray: Tray | null = null
+let isQuitting = false
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'steam-asset', privileges: { bypassCSP: true, secure: true, supportFetchAPI: true } }
@@ -42,7 +46,7 @@ function createWindow() {
     height: 900,
     minWidth: 1200,
     minHeight: 800,
-    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    icon: path.join(process.env.VITE_PUBLIC as string, 'icon.png'),
     frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -70,9 +74,39 @@ function createWindow() {
   } else {
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
+
+  win.on('close', (event) => {
+    if (!isQuitting && getRunInBackgroundSync()) {
+      event.preventDefault()
+      win?.hide()
+    }
+  })
 }
 
 app.whenReady().then(() => {
+  initGlobalWatchers()
+
+  // Setup System Tray
+  try {
+    const iconPath = path.join(process.env.VITE_PUBLIC as string, 'icon.png')
+    tray = new Tray(iconPath)
+    tray.setToolTip('Non-Steam Automation')
+    
+    const contextMenu = Menu.buildFromTemplate([
+      { label: 'Abrir', click: () => win?.show() },
+      { label: 'Encerrar completamente', click: () => {
+          isQuitting = true
+          app.quit()
+        } 
+      }
+    ])
+    
+    tray.setContextMenu(contextMenu)
+    tray.on('click', () => win?.show())
+  } catch (error) {
+    console.error('Falha ao criar System Tray:', error)
+  }
+
   protocol.handle('steam-asset', (request) => {
     const filePath = fileURLToPath(request.url.replace('steam-asset://', 'file://'))
     return net.fetch('file://' + filePath)
@@ -85,6 +119,11 @@ app.whenReady().then(() => {
 
   ipcMain.handle('get-config', () => getConfig())
   ipcMain.handle('save-config-data', async (_event, data) => await saveConfigData(data.key, data.value))
+  ipcMain.handle('get-run-in-background', () => getRunInBackgroundSync())
+  ipcMain.handle('save-run-in-background', async (_event, enabled: boolean) => {
+    const { saveRunInBackground } = await import('./storeManager')
+    await saveRunInBackground(enabled)
+  })
 
   ipcMain.handle('validate-sgdb-key', async (_event, apiKey) => await validateSgdbKey(apiKey))
   ipcMain.handle('validate-steam-key', async (_event, apiKey) => await validateSteamKey(apiKey))
