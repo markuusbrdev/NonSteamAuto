@@ -63,20 +63,15 @@
     "linux": {
       "target": [
         "AppImage",
-        "tar.gz"
+        "tar.gz",
+        "rpm"
       ],
       "category": "Utility",
       "icon": "build/icon.png"
     },
     "rpm": {
       "synopsis": "Non-Steam Automation Tool",
-      "description": "Automation tool for managing non-steam games",
-      "fpm": [
-        "--rpm-rpmbuild-define", "_build_id_links none",
-        "--rpm-rpmbuild-define", "__spec_install_pre %{nil}",
-        "--rpm-rpmbuild-define", "__os_install_post %{nil}",
-        "--rpm-rpmbuild-define", "debug_package %{nil}"
-      ]
+      "description": "Automation tool for managing non-steam games"
     }
   }
 }

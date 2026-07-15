@@ -83,7 +83,20 @@ function createWindow() {
   })
 }
 
-app.whenReady().then(() => {
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (win) {
+      if (!win.isVisible()) win.show()
+      if (win.isMinimized()) win.restore()
+      win.focus()
+    }
+  })
+
+  app.whenReady().then(() => {
   initGlobalWatchers()
 
   // Setup System Tray
@@ -284,3 +297,4 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
+}

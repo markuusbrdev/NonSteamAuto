@@ -14,7 +14,7 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel,
   
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
-    appId: initialData?.appId || '',
+    appId: initialData?.appId ? String(initialData.appId) : '',
     exe: initialData?.exe || '',
     launchOptions: initialData?.launchOptions || '',
     proton: initialData?.proton || 'Nenhum'
@@ -164,9 +164,9 @@ export const InjectionWizard: React.FC<Props> = ({ apiKey, onComplete, onCancel,
         } catch (e) {
           console.error('Failed to save achievements enabled preference:', e)
         }
-        if (formData.appId.trim()) {
+        if (formData.appId && String(formData.appId).trim()) {
           try {
-            await (window as any).api.saveRealAppId(result.appId.toString(), formData.appId.trim())
+            await (window as any).api.saveRealAppId(result.appId.toString(), String(formData.appId).trim())
           } catch (e) {
             console.error('Failed to save real AppID:', e)
           }

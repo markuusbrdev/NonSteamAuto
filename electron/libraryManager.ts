@@ -14,7 +14,7 @@ async function getSteamPath() {
     path.join(os.homedir(), '.var/app/com.valvesoftware.Steam/.local/share/Steam')
   ]
   for (const p of paths) {
-    if (existsSync(p)) return p
+    if (existsSync(path.join(p, 'config', 'config.vdf'))) return p
   }
   return paths[0]
 }

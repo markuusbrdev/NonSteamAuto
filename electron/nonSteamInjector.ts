@@ -15,7 +15,7 @@ async function getSteamPath() {
     path.join(os.homedir(), '.var/app/com.valvesoftware.Steam/.local/share/Steam')
   ]
   for (const p of paths) {
-    if (existsSync(p)) return p
+    if (existsSync(path.join(p, 'config', 'config.vdf'))) return p
   }
   return paths[0]
 }
@@ -164,6 +164,12 @@ export async function injectNonSteamShortcut(params: {
 
   const writeFn = (VDFBinary as any).writeVdf || (VDFBinary as any).default?.writeVdf
   const outputBuffer = writeFn(shortcutsData)
+
+  try {
+    const { execSync } = await import('child_process')
+    execSync('pkill -9 -x steam || killall -9 steam || flatpak kill com.valvesoftware.Steam || true')
+  } catch(e) {}
+
   await fs.writeFile(shortcutsVdfPath, outputBuffer)
 
   if (protonVersion) {
