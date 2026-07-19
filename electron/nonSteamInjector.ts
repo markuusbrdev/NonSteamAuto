@@ -167,7 +167,10 @@ export async function injectNonSteamShortcut(params: {
 
   try {
     const { execSync } = await import('child_process')
-    execSync('pkill -9 -x steam || killall -9 steam || flatpak kill com.valvesoftware.Steam || true')
+    // Tenta fechar a Steam de forma segura primeiro para que ela salve o config.vdf, depois força o encerramento dos binários reais
+    execSync('steam -shutdown || flatpak run com.valvesoftware.Steam -shutdown || true')
+    execSync('sleep 2')
+    execSync('pkill -9 -x steam || killall -9 steam || pkill -9 -e ubuntu12_32/steam || flatpak kill com.valvesoftware.Steam || true')
   } catch(e) {}
 
   await fs.writeFile(shortcutsVdfPath, outputBuffer)

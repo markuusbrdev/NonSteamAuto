@@ -7,8 +7,7 @@ contextBridge.exposeInMainWorld('api', {
   setDesktopName: (name: string) => ipcRenderer.invoke('set-desktop-name', name),
   getConfig: () => ipcRenderer.invoke('get-config'),
   saveConfigData: (key: string, value: any) => ipcRenderer.invoke('save-config-data', { key, value }),
-  getRunInBackground: () => ipcRenderer.invoke('get-run-in-background'),
-  saveRunInBackground: (enabled: boolean) => ipcRenderer.invoke('save-run-in-background', enabled),
+
   validateSgdbKey: (apiKey: string) => ipcRenderer.invoke('validate-sgdb-key', apiKey),
   validateSteamKey: (apiKey: string) => ipcRenderer.invoke('validate-steam-key', apiKey),
   getLocalSteamUsers: () => ipcRenderer.invoke('get-local-steam-users'),
@@ -51,5 +50,10 @@ contextBridge.exposeInMainWorld('api', {
   updateArt: (data: { appId: number, artType: string, sourceFilePath: string }) => 
     ipcRenderer.invoke('update-manual-art', data),
   openExternalUrl: (url: string) => ipcRenderer.send('open-external-url', url),
-  searchSteamGame: (query: string) => ipcRenderer.invoke('search-steam-game', query)
+  searchSteamGame: (query: string) => ipcRenderer.invoke('search-steam-game', query),
+  installVCRedist: (appId: string) => ipcRenderer.invoke('install-vcredist', appId),
+  onVCRedistProgress: (callback: (percent: number) => void) => {
+    ipcRenderer.removeAllListeners('vcredist-progress')
+    ipcRenderer.on('vcredist-progress', (_event, percent) => callback(percent))
+  }
 })

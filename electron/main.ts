@@ -1,9 +1,9 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, Tray, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, protocol, net, shell } from 'electron'
 import axios from 'axios'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { injectNonSteamShortcut } from './nonSteamInjector'
-import { getSavedApiKey, saveApiKey, getConfig, saveConfigData, getRunInBackgroundSync } from './storeManager'
+import { getSavedApiKey, saveApiKey, getConfig, saveConfigData } from './storeManager'
 import { getNonSteamLibrary, updateManualArt, getInstalledProtons, removeNonSteamShortcut } from './libraryManager'
 import { getHybridAchievements } from './goldbergParser'
 import { SGDBService } from './sgdbService'
@@ -33,7 +33,7 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
 let win: BrowserWindow | null = null
-let tray: Tray | null = null
+
 let isQuitting = false
 
 protocol.registerSchemesAsPrivileged([
@@ -75,10 +75,22 @@ function createWindow() {
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
 
-  win.on('close', (event) => {
-    if (!isQuitting && getRunInBackgroundSync()) {
+  win.on('close', async (event) => {
+    if (!isQuitting) {
       event.preventDefault()
-      win?.hide()
+      const { response } = await dialog.showMessageBox(win!, {
+        type: 'warning',
+        buttons: ['Sim, fechar', 'Cancelar'],
+        defaultId: 1,
+        cancelId: 1,
+        title: 'Confirmação',
+        message: 'Ao fechar o app não será possível rastrear as conquistas enquanto estiver jogando. Deseja mesmo fechar?'
+      })
+      
+      if (response === 0) {
+        isQuitting = true
+        win?.close()
+      }
     }
   })
 }
@@ -99,26 +111,7 @@ if (!gotTheLock) {
   app.whenReady().then(() => {
   initGlobalWatchers()
 
-  // Setup System Tray
-  try {
-    const iconPath = path.join(process.env.VITE_PUBLIC as string, 'icon.png')
-    tray = new Tray(iconPath)
-    tray.setToolTip('Non-Steam Automation')
-    
-    const contextMenu = Menu.buildFromTemplate([
-      { label: 'Abrir', click: () => win?.show() },
-      { label: 'Encerrar completamente', click: () => {
-          isQuitting = true
-          app.quit()
-        } 
-      }
-    ])
-    
-    tray.setContextMenu(contextMenu)
-    tray.on('click', () => win?.show())
-  } catch (error) {
-    console.error('Falha ao criar System Tray:', error)
-  }
+
 
   protocol.handle('steam-asset', (request) => {
     const filePath = fileURLToPath(request.url.replace('steam-asset://', 'file://'))
@@ -132,11 +125,7 @@ if (!gotTheLock) {
 
   ipcMain.handle('get-config', () => getConfig())
   ipcMain.handle('save-config-data', async (_event, data) => await saveConfigData(data.key, data.value))
-  ipcMain.handle('get-run-in-background', () => getRunInBackgroundSync())
-  ipcMain.handle('save-run-in-background', async (_event, enabled: boolean) => {
-    const { saveRunInBackground } = await import('./storeManager')
-    await saveRunInBackground(enabled)
-  })
+
 
   ipcMain.handle('validate-sgdb-key', async (_event, apiKey) => await validateSgdbKey(apiKey))
   ipcMain.handle('validate-steam-key', async (_event, apiKey) => await validateSteamKey(apiKey))
@@ -284,6 +273,13 @@ if (!gotTheLock) {
           resolve({ success: true })
         }, 1000)
       })
+    })
+  })
+
+  ipcMain.handle('install-vcredist', async (event, appId) => {
+    const { installVCRedist } = await import('./dependencyManager')
+    return await installVCRedist(appId, (percent) => {
+      event.sender.send('vcredist-progress', percent)
     })
   })
 

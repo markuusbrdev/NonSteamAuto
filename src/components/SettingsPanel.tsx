@@ -26,7 +26,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [steam32Id, setSteam32Id] = useState(initialSteam32Id)
   const [localUsers, setLocalUsers] = useState<SteamUser[]>([])
   const [installType, setInstallType] = useState<'native' | 'flatpak' | 'none'>('none')
-  const [runInBackground, setRunInBackground] = useState(true)
+
   
   const [showApiKey, setShowApiKey] = useState(false)
   const [showSteamKey, setShowSteamKey] = useState(false)
@@ -43,10 +43,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   useEffect(() => {
     const fetchData = async () => {
-      if ((window as any).api?.getRunInBackground) {
-        const bg = await (window as any).api.getRunInBackground()
-        setRunInBackground(bg)
-      }
+
       if ((window as any).api?.getLocalSteamUsers) {
         const response = await (window as any).api.getLocalSteamUsers()
         const users = response.users || []
@@ -280,35 +277,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </div>
       </div>
 
-      {/* Card 2: Comportamento do Sistema */}
-      <div className="adwaita-card p-6 flex flex-col space-y-6 md:col-span-2 max-w-4xl mx-auto w-full">
-        <div>
-          <h2 className="text-lg font-bold mb-1">Comportamento do Sistema</h2>
-          <p className="text-sm text-adwaita-text-secondary">Opções de execução e monitoramento em segundo plano.</p>
-        </div>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <label className="text-[14px] font-bold text-white block mb-1">Executar em segundo plano</label>
-            <p className="text-sm text-gray-400 max-w-lg">Minimiza o aplicativo para a bandeja do sistema ao fechar. Necessário para manter o monitoramento e as notificações de conquistas ativos enquanto você joga.</p>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input 
-              type="checkbox" 
-              className="sr-only peer" 
-              checked={runInBackground}
-              onChange={async (e) => {
-                const val = e.target.checked
-                setRunInBackground(val)
-                if ((window as any).api?.saveRunInBackground) {
-                  await (window as any).api.saveRunInBackground(val)
-                }
-              }}
-            />
-            <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-adwaita-blue"></div>
-          </label>
-        </div>
-      </div>
     </div>
   )
 }
